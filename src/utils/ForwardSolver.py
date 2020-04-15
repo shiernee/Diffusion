@@ -31,9 +31,9 @@ class ForwardSolver:
 
         u_update = []
         u_update.append(u)
-
+        time_pt_saved = []
         for t in range(1, len(time_pt)):
-            print('time: {}'.format(t*dt))
+            # print('{}time: {}'.format(t, t*dt))
 
             deltaD_deltaV = self.physics_model.del_D_delV(u, self.interpolated_spacing, self.order_acc, \
                                                           coeff_matrix_first_der, coeff_matrix_second_der)
@@ -49,11 +49,15 @@ class ForwardSolver:
                     format(t*dt, np.min(next_time_pt_u), np.min(self.physics_model.u0))
 
             u = next_time_pt_u.copy()
-            u_update.append(u)
+            if (t * dt) % 0.001 < 1e-6:
+                print('====================================================')
+                print('saving time {}'.format(t * dt))
+                time_pt_saved.append(t*dt)
+                u_update.append(u)
 
         u_update = np.array(u_update, dtype='float64')
 
-        return u_update, time_pt
+        return u_update, time_pt_saved
 
     def generate_first_der_coeff_matrix(self):
         coeff = self.ut.OA_coeff(self.order_acc)
