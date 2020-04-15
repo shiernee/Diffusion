@@ -50,27 +50,27 @@ class ViewResultsUtils:
         return Xi, Yi
 
     def assign_u_t(self, u, t):
-        self.u = np.reshape(u, [t.shape[0], self.no_pt])
+        self.u = np.reshape(u, [-1, self.no_pt])
         self.t = t
         return
 
-    def get_u_specific_period(self, start_time, end_time):
+    def get_var_specific_period(self, start_time, end_time, variable):
         dt = self.t[2] - self.t[1]
         start_time_step, end_time_step = int(start_time / dt), int(end_time / dt) + 1
-        return self.u[start_time_step:end_time_step].copy()
+        return variable[start_time_step:end_time_step].copy()
 
     def get_u_t_at_specific_time(self, start_time, end_time):
         u_specific_period = self.get_u_specific_period(start_time, end_time)
         t = self.get_t_specific_period(start_time, end_time)
         return u_specific_period, t
 
-    def plot_theta_phi_V(self, start_time, end_time, no_of_plot):
+    def plot_theta_phi_V(self, start_time, end_time, variable, no_of_plot):
         dt = self.t[2] - self.t[1]
 
         sqrt_no_of_plot = int(np.sqrt(no_of_plot))
         start_time_step, end_time_step = int(start_time / dt), int(end_time / dt) + 1
         step_plot = int((end_time_step - start_time_step + 1) // no_of_plot)
-        u_specific_period = self.get_u_specific_period(start_time, end_time)
+        var_specific_period = self.get_var_specific_period(start_time, end_time, variable)
 
         coord = np.array([self.x, self.y, self.z]).transpose()
         coord = coord - coord.mean(axis=0)
@@ -79,9 +79,9 @@ class ViewResultsUtils:
         thetaI = np.linspace(theta.min(), theta.max())
         phiI = np.linspace(phi.min(), phi.max())
         thetaI, phiI = np.meshgrid(thetaI, phiI)
-        cbar_min, cbar_max = u_specific_period.min(), u_specific_period.max()
+        cbar_min, cbar_max = var_specific_period.min(), var_specific_period.max()
 
-        fig1 = plt.figure(1)
+        fig1 = plt.figure()
 
         for i in range(no_of_plot):
             print(i)
@@ -89,7 +89,7 @@ class ViewResultsUtils:
             ax.set_xlabel('\u03F4')  # THETA
             ax.set_ylabel('\u03C6')  # PHI
 
-            u_tmp = u_specific_period[i * step_plot]
+            u_tmp = var_specific_period[i * step_plot]
 
             # === plot raw ===
             cbar = ax.scatter(theta, phi, c=u_tmp, vmin=cbar_min, vmax=cbar_max)
@@ -105,29 +105,29 @@ class ViewResultsUtils:
         # plt.show()
         return
 
-    def plot_u_theta(self, start_time, end_time, skip_dt):
+    def plot_u_theta(self, start_time, end_time, skip_dt, variable):
         dt = self.t[2] - self.t[1]
-        u_specific_period = self.get_u_specific_period(start_time, end_time)
+        var_specific_period = self.get_var_specific_period(start_time, end_time, variable)
 
-        assert np.ndim(u_specific_period) == 2, 'u_update should be 2D array (time_pt x n_coord)'
+        assert np.ndim(var_specific_period) == 2, 'u_update should be 2D array (time_pt x n_coord)'
 
         coord = np.array([self.x, self.y, self.z]).transpose()
         _, phi, theta = self.ut.xyz2sph(coord)
 
         # == sort theta for plotting raw data  (not used, sort theta) ====
         ind = np.argsort(theta)
-        skip_time_step = int(skip_dt * (u_specific_period.shape[0] - 1) / self.t[-1])
+        skip_time_step = int(skip_dt * (var_specific_period.shape[0] - 1) / self.t[-1])
 
         # === plot smooth ===
         thetaI = np.linspace(theta.min(), theta.max())
         phiI = np.linspace(phi.min(), phi.max())
         thetaI, phiI = np.meshgrid(thetaI, phiI)
-        cbar_min, cbar_max = u_specific_period.min(), u_specific_period.max()
+        cbar_min, cbar_max = var_specific_period.min(), var_specific_period.max()
 
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(111)
-        for n in range(0, np.shape(u_specific_period)[0], skip_time_step):
-            u_tmp = u_specific_period[n]
+        for n in range(0, np.shape(var_specific_period)[0], skip_time_step):
+            u_tmp = var_specific_period[n]
             # ==== sort theta for plotting raw data  (not used, sort theta)=====
             # ax1.plot(theta[ind], u_specific_period[n, ind], label='time:{0:0.2f}'.format(n * dt))
             # === smooth ====
