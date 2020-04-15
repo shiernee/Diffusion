@@ -32,6 +32,9 @@ class ForwardSolver:
         u_update = []
         u_update.append(u)
         time_pt_saved = []
+        time_pt_saved.append(0)
+        time_tmp = 0.1
+        disp_time_tmp = 0.001
         for t in range(1, len(time_pt)):
             # print('{}time: {}'.format(t, t*dt))
 
@@ -40,23 +43,30 @@ class ForwardSolver:
             dudt = deltaD_deltaV.copy()
             next_time_pt_u = u + dt * dudt
 
-            assert np.max(next_time_pt_u) <= np.max(u0), \
-                'at time {}, next_time_pt_u {} higher than initial highest temperature, {}'.\
+            assert np.max(next_time_pt_u) <= np.max(u0)*1.1, \
+                'at time {:.2f}, next_time_pt_u {:.2f} higher than 10% of initial highest temperature, {}'.\
                     format(t*dt, np.max(next_time_pt_u), np.max(self.physics_model.u0))
 
-            assert np.min(next_time_pt_u) >= np.min(u0), \
-                'at time {}, next_time_pt_u {} lower than initial lowest temperature, {}'.\
+            assert np.min(next_time_pt_u) >= np.min(u0)*1.1, \
+                'at time {:.2f}, next_time_pt_u {:.2f} lower than 10% ofinitial lowest temperature, {}'.\
                     format(t*dt, np.min(next_time_pt_u), np.min(self.physics_model.u0))
 
             u = next_time_pt_u.copy()
-            if (t * dt) % 0.001 < 1e-6:
+
+            if (abs((t * dt) - time_tmp)) < 1e-6:
                 print('====================================================')
-                print('saving time {}'.format(t * dt))
-                time_pt_saved.append(t*dt)
+                print('time {}'.format(t * dt))
+                disp_time_tmp += 0.001
+
+            if (abs((t * dt) - time_tmp)) < 1e-6:
+                print('====================================================')
+                print('saving at time {}'.format(t * dt))
+                time_pt_saved.append(time_tmp)
                 u_update.append(u)
+                time_tmp += 0.1
 
         u_update = np.array(u_update, dtype='float64')
-
+        time_pt_saved = np.array(time_pt_saved, dtype='float64')
         return u_update, time_pt_saved
 
     def generate_first_der_coeff_matrix(self):
