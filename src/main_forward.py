@@ -45,7 +45,7 @@ if __name__=='__main__':
     point_cloud.compute_nn_coord()
     point_cloud.compute_local_axis()
     point_cloud.interpolate_coord_local_axis1_axis2(interpolated_spacing=INTERPOLATED_SPACING, order_acc=ORDER_ACC, \
-                                                    order_derivative=ORDER_DERIVATIVE)
+                                                    order_derivative=ORDER_DERIVATIVE, clip=False)
     _, dist_intp_coord_axis1, nn_indices_intp_coord_axis1 = \
         point_cloud.compute_nn_indices_neighbor_intp_coord_axis1(n_neighbors=24, algorithm='kd_tree')
     _, dist_intp_coord_axis2, nn_indices_intp_coord_axis2 = \
