@@ -17,43 +17,7 @@ from DiffusionDLModel import DiffusionDLModel
 
 
 #  ==== liang et al study =====
-# analytic solution
-def analytic_sln(t, theta):
-    return np.exp(-2 * t.reshape([-1, 1])) * np.cos(theta.reshape([1, -1]))
 
-
-def plot_analytic_sln(coord, u_exact):
-    step = int(u_exact.shape[1] / 8)
-    fig2 = plt.figure(2)
-    ax2 = fig2.add_subplot(331, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, 0], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(0 * DT))
-    ax2 = fig2.add_subplot(332, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * DT))
-    ax2 = fig2.add_subplot(333, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step * 2], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * 2 * DT))
-    ax2 = fig2.add_subplot(334, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step * 3], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * 3 * DT))
-    ax2 = fig2.add_subplot(335, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step * 4], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * 4 * DT))
-    ax2 = fig2.add_subplot(336, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step * 5], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * 5 * DT))
-    ax2 = fig2.add_subplot(337, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step * 6], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * 6 * DT))
-    ax2 = fig2.add_subplot(338, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step * 7], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * 7 * DT))
-    ax2 = fig2.add_subplot(339, projection='3d')
-    cbar = ax2.scatter(coord[:, 0], coord[:, 1], coord[:, 2], c=u_exact[:, step * 8], vmin=-1, vmax=1)
-    ax2.title.set_text('t:{:.2f}'.format(step * 8 * DT))
-    plt.tight_layout()
-    return
 
 
 def compute_dx(coord):
@@ -85,14 +49,9 @@ if __name__ == '__main__':
     coord[:, 0], coord[:, 1], coord[:, 2] = x, y, z
     r, phi, theta = sph_coord[:, 0], sph_coord[:, 1], sph_coord[:, 2]
 
-    duration = 0.001
-    interpolated_spacing = compute_dx(coord)
+    duration = 1
+    interpolated_spacing = np.float64(0.0025) #compute_dx(coord)
     dt = round(0.1 * interpolated_spacing ** 2, 8)
-
-    # ===== analytical solution ====
-    # t = np.arange(0, duration + dt, dt)
-    # u_exact = analytic_sln(t, theta)
-    # plot_analytic_sln(coord, u_exact)
 
     u_initial = np.cos(theta)
     # fig1 = plt.figure(1)
@@ -106,7 +65,7 @@ if __name__ == '__main__':
     bc_type = 'neumann'
 
     DT = dt.copy()
-    DURATION = 0.2
+    DURATION = duration
     INTERPOLATED_SPACING = interpolated_spacing.copy()
     ORDER_ACC = 4  # central difference by taking two elements right and left each to compute gradient
     ORDER_DERIVATIVE = 2  # diffusion term is second derivative
@@ -167,14 +126,14 @@ if __name__ == '__main__':
     physics_model.assign_boundary_condition(bc)
 
     # ============================ numpy solver ===================================================== #
-    import timeit
-    start = timeit.timeit()
+    import time
+    start = time.time()
     solver = ForwardSolver(point_cloud, physics_model, interpolated_spacing=INTERPOLATED_SPACING, order_acc=ORDER_ACC)
     solver.generate_first_der_coeff_matrix()
     solver.generate_second_der_coeff_matrix()
     u_update, time_pt = solver.solve(dt=DT, duration=DURATION)
-    end = timeit.timeit()
-    print(end - start)
+    end = time.time()
+    print('time used:{}'.format(end - start))
 
     # ============================ tensorflow solver ===================================================== #
     # diffusion_dl_model = DiffusionDLModel()
