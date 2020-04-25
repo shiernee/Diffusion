@@ -64,8 +64,8 @@ if __name__=='__main__':
     diffusion_dl_model.initialize_weight()
     dudt = diffusion_dl_model.compute_dudt()
     diffusion_dl_model.assign_dudt(dudt)
-    # ============================================================================================ #
 
+    # ============================================================================================ #
     inverse_solver = InverseSolver(diffusion_dl_model, ORDER_ACC)
     coeff_matrix_first_der = inverse_solver.generate_first_der_coeff_matrix()
     coeff_matrix_second_der = inverse_solver.generate_second_der_coeff_matrix()
