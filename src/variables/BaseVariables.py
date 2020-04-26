@@ -11,11 +11,11 @@
 import numpy as np
 import copy  as cp
 
-class base_variables:
+class BaseVariables:
 
     # use point cloud to specify the
     # storage and differentials of variable
-    def __init__(self,t):
+    def __init__(self, t):
         self.val = None
         self.t = t # time
         self.max_value = 1000  # HK

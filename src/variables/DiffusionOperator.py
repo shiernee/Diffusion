@@ -1,6 +1,6 @@
 
 
-class diffusion_operator:
+class DiffusionOperator:
 
     def __init__(self,D):
         self.D = D # diffusion coefficient

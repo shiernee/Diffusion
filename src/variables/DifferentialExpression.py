@@ -1,5 +1,5 @@
 # ===============================
-class differential_expression:
+class DifferentialExpression:
 
     def __init__(self):
         self.terms = []

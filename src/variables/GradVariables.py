@@ -1,12 +1,12 @@
 import copy as cp
 import numpy as np
 
-from src.variables.base_variables import base_variables
+from src.variables.BaseVariables import BaseVariables
 
-class grad_variables(base_variables):
+class GradVariables(BaseVariables):
 
     def __init__(self,point_cloud,interpolator,t):
-        super(grad_variables,self).__init__(t)
+        super(GradVariables,self).__init__(t)
 
         self.div_updated = False
         self.val_copy    = None 
@@ -51,4 +51,5 @@ class grad_variables(base_variables):
     # =====================================
     def multiply(self,D):
         self.val = self.val*D
+
    

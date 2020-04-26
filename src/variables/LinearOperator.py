@@ -2,7 +2,7 @@
 
 # term u
 
-class linear_operator:
+class LinearOperator:
 
     def __init__(self,b):
         self.b = b

@@ -1,9 +1,5 @@
-#import sys
-#sys.path.insert(1, 'C:\\Users\sawsn\Desktop\Shiernee\\Utils\src\\utils')
-
 import numpy as np
 from scipy.spatial import distance
-from Utils.src.utils.Utils import Utils
 
 
 class InterpolatedSpacing:
@@ -29,8 +25,7 @@ class InterpolatedSpacing:
         :param cart_coord: cartesian coordinates
         :return:
         """
-        ut = Utils()
-        r, phi, theta = ut.xyz2sph(cart_coord)
+        r, phi, theta = self.xyz2sph(cart_coord)
         no_pt = len(cart_coord)
         r = r.mean()
         return np.sqrt(4 * np.pi * r ** 2 / no_pt)
@@ -38,3 +33,28 @@ class InterpolatedSpacing:
     def interpolated_spacing_min_dist(self, cart_coord):
         return distance.pdist(cart_coord).min()
 
+    @staticmethod
+    def xyz2sph(cart_coord):
+        x, y, z = cart_coord[:, 0], cart_coord[:, 1], cart_coord[:, 2]
+        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+        theta = np.arccos(z / r)
+
+        phi = np.zeros_like(theta)
+        idx = np.argwhere(x > 0.0).squeeze()
+        phi[idx] = np.arctan(y[idx] / x[idx])
+
+        idx = np.argwhere((x < 0.0) & (y >= 0)).squeeze()
+        phi[idx] = np.arctan(y[idx] / x[idx]) + np.pi
+
+        idx = np.argwhere((x < 0.0) & (y < 0)).squeeze()
+        phi[idx] = np.arctan(y[idx] / x[idx]) - np.pi
+
+        idx = np.argwhere((x == 0) & (y > 0)).squeeze()
+        phi[idx] = np.pi / 2
+
+        idx = np.argwhere((x == 0) & (y < 0)).squeeze()
+        phi[idx] = - np.pi / 2
+
+        idx = np.argwhere((x == 0.0) & (y == 0))
+        phi[idx] = 0.0
+        return r, phi, theta

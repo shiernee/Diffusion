@@ -2,7 +2,7 @@ import numpy as np
 
 # term u*(a-u)*(u-1)
 
-class cubic_operator:
+class CubicOperator:
 
     def __init__(self,a):
         self.a = a # diffusion coefficient

@@ -3,16 +3,15 @@ from src.utils.InterpolatedSpacing import InterpolatedSpacing
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import time
-from Utils.src.utils.Utils import Utils
 import copy as cp
+import pandas as pd
+
 
 class PointCloud:
     # ===== this model will compute all the neccesary parameter needed for forward solver====== #
-    def __init__(self,cart_coord,
-                 interpolated_spacing_method,
-                 neighbors,
-                 order_acc):
+    def __init__(self, case):
 
+        # ==========================================================
         self.coord = None
         self.no_pt = None
 
@@ -26,51 +25,66 @@ class PointCloud:
         self.interpolated_spacing = None
         self.local_grid = None
 
-        self.assign_coord_(cart_coord)
-        self.compute_interpolated_spacing_(interpolated_spacing_method)
-        self.compute_nn_indices_neighbor_(neighbors)
+        # ============================================================
+
+        coordinate_file = '../data/{}/coordinates.csv'.format(case)
+        self.parameter_file = '../data/{}/param_template.csv'.format(case)
+
+        self.coord = pd.read_csv(coordinate_file).values
+        self.no_pt = len(self.coord)
+
+        self.param = pd.read_csv(self.parameter_file)
+        nn_algorithm = self.param['nn_algorithm'].values[0]
+        nn_radius_limit = self.param['nn_radius_limit'].values[0]
+        interpolated_spacing_method = self.param['interpolated_spacing_method'].values[0]
+        interpolated_spacing_value = self.param['interpolated_spacing_value'].values[0]
+
+        # ===========================================================================
+
+        self.compute_interpolated_spacing_(interpolated_spacing_method, interpolated_spacing_value)
+        self.compute_nn_indices_neighbor_(nn_algorithm=nn_algorithm, nn_radius_limit=nn_radius_limit)
         self.compute_local_axis_()
-        self.make_local_grids_(order_acc)
+        self.make_local_grids_()
 
-    def assign_coord_(self, coord):
-        assert np.ndim(coord) == 2, 'coordinates dimension should be 2D array'
-        assert coord.shape[-1] == 3, 'coordinate shape should be an (n_coord x 3)'
-
-        self.coord = coord.copy()
-        self.no_pt = int(np.shape(self.coord)[0])
-        return
-
-    def compute_interpolated_spacing_(self, method):
-        intp_spc_method= method.get('is_method')
-        interpolated_spacing = method.get('interpolated_spacing')
-        is_ = InterpolatedSpacing(intp_spc_method, self.coord, interpolated_spacing)
+    def compute_interpolated_spacing_(self, interpolated_spacing_method, interpolated_spacing_value):
+        is_ = InterpolatedSpacing(interpolated_spacing_method, self.coord, interpolated_spacing_value)
         self.interpolated_spacing = cp.copy(is_.interpolated_spacing)
+        self.write_interpolated_spacing_to_parameter_file()
         return
 
-    def compute_nn_indices_neighbor_(self, neighbours):
+    def write_interpolated_spacing_to_parameter_file(self):
+        self.param['interpolated_spacing_value'] = cp.copy(self.interpolated_spacing)
+        self.param.to_csv(self.parameter_file, index=False, index_label=False)
+        return
+
+
+    def compute_nn_indices_neighbor_(self, nn_algorithm, nn_radius_limit=None, n_neighbors=None):
         """
 
         :param neighbours: dict {nn_algorithm, n_neighbors, radius}
         :return:
         """
-        algorithm = neighbours.get('nn_algorithm')
+        algorithm = nn_algorithm
         print('Neighbour points was found using {}'.format(algorithm))
         # === find the n_neighbours coordinates for each coordinate. ==== #
         if algorithm == 'kd_tree_no_neighbour':
-            n_neighbors = neighbours.get('n_neighbors')
+            if n_neighbors is None:
+                raise ValueError('n_neighbors is None, NearestNeighbour cannot performed')
             self.nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm='kd_tree').fit(self.coord)
-            self.dist, self.nn_indices = self.nbrs.kneighbors(self.coord)
-            self.dist, self.nn_indices = list(self.dist), list(self.nn_indices)
+            self.dist_nn, self.nn_indices = self.nbrs.kneighbors(self.coord)
+            self.dist_nn, self.nn_indices = list(self.dist), list(self.nn_indices)
 
         if algorithm == 'kd_tree_radius':
-            radius = neighbours.get('radius')
-            self.nbrs = NearestNeighbors(radius=radius, algorithm='kd_tree').fit(self.coord)
-            self.dist, self.nn_indices = self.nbrs.radius_neighbors(self.coord)
+            if nn_radius_limit is None:
+                raise ValueError('nn_radius_limit is None, NearestNeighbour within radius cannot performed')
+            self.nbrs = NearestNeighbors(radius=nn_radius_limit, algorithm='kd_tree').fit(self.coord)
+            self.dist_nn, self.nn_indices = self.nbrs.radius_neighbors(self.coord)
 
         if algorithm == 'ball_tree':
-            n_neighbors = neighbours.get('n_neighbors')
+            if n_neighbors is None:
+                raise ValueError('n_neighbors is None, NearestNeighbour cannot performed')
             self.nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm='ball_tree').fit(self.coord)
-            self.dist, self.nn_indices = self.nbrs.kneighbors(self.coord)
+            self.dist_nn, self.nn_indices = self.nbrs.kneighbors(self.coord)
 
         return
 
@@ -78,7 +92,7 @@ class PointCloud:
         local_axis1, local_axis2 = [], []
         for i in range(self.no_pt):
             nn_indices = self.nn_indices[i].copy()
-            dist = self.dist[i].copy()
+            dist = self.dist_nn[i].copy()
             coord = self.coord[i].copy().reshape([1, -1])
             assert np.ndim(coord) == 2, 'nn_coord should be (1, 3 axes)'
 
@@ -104,7 +118,7 @@ class PointCloud:
 
         return
 
-    def make_local_grids_(self, order_acc, order_derivative=2):
+    def make_local_grids_(self, order_acc=2, order_derivative=2):
         fd_coeff_length = self.fd_coeff_length(order_acc)
         local_interp_size = self.compute_no_pt_needed_for_interpolation(fd_coeff_length, order_derivative)
         local_grid = np.zeros([self.no_pt, local_interp_size, local_interp_size, 3])
@@ -128,6 +142,14 @@ class PointCloud:
 
     def grid_list(self):
         return list(zip(self.local_grid.copy(), self.nn_indices.copy()))
+
+    @staticmethod
+    def sph2xyz(sph_coord):
+        sph_radius, phi, theta = sph_coord[:, 0], sph_coord[:, 1], sph_coord[:, 2]
+        x = sph_radius * np.sin(theta) * np.cos(phi)
+        y = sph_radius * np.sin(theta) * np.sin(phi)
+        z = sph_radius * np.cos(theta)
+        return x, y, z
 
     def instance_to_dict(self):
         physics_model_instance = \

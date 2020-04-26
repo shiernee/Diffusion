@@ -11,21 +11,22 @@
 import numpy as np
 import copy 
 
-from src.variables.base_variables import base_variables
-from src.variables.grad_variables import grad_variables
+from src.variables.BaseVariables import BaseVariables
+from src.variables.GradVariables import GradVariables
 
-class variables(base_variables):
+
+class Variables(BaseVariables):
 
     # use point cloud to specify the
     # storage and differentials of variable
     def __init__(self,point_cloud,interpolator,t):
-        super(variables,self).__init__(t)
+        super(Variables,self).__init__(t)
 
         self.ddx_updated = False
         self.point_cloud = point_cloud
         self.interpolator = interpolator
 
-        self.grad = grad_variables(point_cloud,interpolator,t)
+        self.grad = GradVariables(point_cloud,interpolator,t)
 
     # =====================================
     # up is the value of u evaluated at another time
