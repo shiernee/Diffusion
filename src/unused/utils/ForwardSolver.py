@@ -29,12 +29,18 @@ class ForwardSolver:
 
         time_pt = np.linspace(0, duration, int(duration/dt)+1, endpoint=True, dtype='float64')
 
+        u_exact = []
+        u_exact.append(self.analytic_sln(t=0))
+
         u_update = []
         u_update.append(u)
+
         time_pt_saved = []
         time_pt_saved.append(0)
-        time_tmp = 0.1
+
+        time_tmp = 0.001
         disp_time_tmp = 0.001
+
         for t in range(1, len(time_pt)):
             # print('{}time: {}'.format(t, t*dt))
 
@@ -53,21 +59,22 @@ class ForwardSolver:
 
             u = next_time_pt_u.copy()
 
-            if (abs((t * dt) - time_tmp)) < 1e-6:
+            if (abs((t * dt) - disp_time_tmp)) < 1e-6:
                 print('====================================================')
                 print('time {}'.format(t * dt))
                 disp_time_tmp += 0.001
 
             if (abs((t * dt) - time_tmp)) < 1e-6:
-                print('====================================================')
                 print('saving at time {}'.format(t * dt))
                 time_pt_saved.append(time_tmp)
                 u_update.append(u)
-                time_tmp += 0.1
+                u_exact.append(self.analytic_sln(t=t*dt))
+                time_tmp += 0.001
 
         u_update = np.array(u_update, dtype='float64')
+        u_exact = np.array(u_exact, dtype='float64')
         time_pt_saved = np.array(time_pt_saved, dtype='float64')
-        return u_update, time_pt_saved
+        return u_update, u_exact, time_pt_saved
 
     def generate_first_der_coeff_matrix(self):
         coeff = self.ut.OA_coeff(self.order_acc)
@@ -82,6 +89,11 @@ class ForwardSolver:
         coeff_matrix_second_der = self.ut.coeff_matrix_first_order(input_length2, coeff)
         self.coeff_matrix_second_der = coeff_matrix_second_der.copy()
         return
+
+    def analytic_sln(self, t):
+        r, phi, theta = self.ut.xyz2sph(self.point_cloud.coord)
+        return np.exp(-2 * t) * np.cos(theta) / r**2
+
 
 
 

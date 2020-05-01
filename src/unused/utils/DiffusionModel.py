@@ -5,43 +5,65 @@ import numpy as np
 import GlobalParameters as gp
 from Utils import Utils
 import symfit
+from scipy.interpolate import Rbf
+import matplotlib.pyplot as plt
+from Parameters import Parameters
+from InterpolationMethod import InterpolationMethod
 
 
 class DiffusionModel:
     # ===== this model will compute all the neccesary parameter needed for forward solver====== #
 
-    def __init__(self):
+    def __init__(self,  point_cloud, u0, D, c):
 
-        self.point_cloud = None
-        self.t = None
-        self.u0 = None
-        self.u = None
-        self.D = None
-        self.c = None
-
-        self.nn_u0 = None
-        self.nn_u = None
-        self.nn_D = None
-
-        self.intp_D_axis1 = None
-        self.intp_D_axis2 = None
-
+        self.p = Parameters()
+        self.interpolate = InterpolationMethod()
         self.ut = Utils()
-        self.bc = None
+        self.check_inputs(point_cloud, u0, D, c)
 
-    def assign_point_cloud_object(self, point_cloud_obj):
-        self.point_cloud = point_cloud_obj
+        self.point_cloud = point_cloud
+        self.u = u0
+        self.D = D
+        self.c = c
+
+        if self.p.interpolate_method.get('interpolate_type') == 'Rbf':
+            intp_function = self.p.interpolate_method.get('function')
+            self.intp_D_axis1, self.intp_D_axis2 = self.interpolate_rbf(self.D, intp_function)
+
+        self.t = None
+        self.u_exact = None
+        self.nn_u = None
+        # self.nn_D = None
+        # self.nn_u0 = None
+
+    def check_inputs(self, point_cloud, u0, D, c):
+        if isinstance(point_cloud, object) is False:
+            raise ValueError("point_cloud should be an object")
+        if u0.ndim != 1:
+            raise ValueError("u0 should be 1D array")
+        if D.ndim != 1:
+            raise ValueError("D should be 1D array")
+        if c.ndim != 1:
+            raise ValueError("c should be 1D array")
         return
 
-    def assign_u0(self, u0):
-        u0 = np.reshape(u0, [1, self.point_cloud.no_pt])
-        assert np.ndim(u0) == 2, 'time should be 2D array'
-        self.u0 = u0.copy()
-        return
+    # def assign_point_cloud_object(self, point_cloud_obj):
+    #     self.point_cloud = point_cloud_obj
+    #     return
+    #
+    # def assign_u0(self, u0):
+    #     u0 = np.reshape(u0, [1, self.point_cloud.no_pt])
+    #     assert np.ndim(u0) == 2, 'time should be 2D array'
+    #     self.u = u0.copy()
+    #     return
 
     def assign_u_update(self, u_update):
         self.u = []
         self.u = u_update
+        return
+
+    def assign_u_exact(self, u_exact):
+        self.u_exact = u_exact
         return
 
     def assign_t(self, time_pt):
@@ -49,16 +71,11 @@ class DiffusionModel:
         self.t = time_pt
         return
 
-    def assign_D_c(self, D, c):
-        # this will insert all read parameters (coordinates, D, c into self)
-        self.check_assign_D_c(D, c)
-        self.D, self.c = D.copy(), c.copy()
-        return
-
-    def check_assign_D_c(self, D, c):
-        assert np.ndim(D) == 1, 'D should be 1D array'
-        assert np.ndim(c) == 1, 'c should be 1D array'
-        return
+    # def assign_D_c(self, D, c):
+    #     assert np.ndim(D) == 1, 'D should be 1D array'
+    #     assert np.ndim(c) == 1, 'c should be 1D array'
+    #     self.D, self.c = D.copy(), c.copy()
+    #     return
 
     def compute_nn_u(self):
         nn_indices = self.point_cloud.nn_indices.copy()
@@ -68,123 +85,122 @@ class DiffusionModel:
         self.nn_u = u[:, nn_indices]
         return
 
-    def compute_nn_u0(self):
-        nn_indices = self.point_cloud.nn_indices.copy()
-        u0 = self.u0.copy()
+    # def compute_nn_u0(self):
+    #     nn_indices = self.point_cloud.nn_indices.copy()
+    #     u0 = self.u0.copy()
+    #
+    #     assert np.ndim(u0[:, nn_indices][:5]) == 3, 'nn_u shape must have 3 dimension'
+    #     self.nn_u0 = u0[:, nn_indices]
+    #     return
 
-        assert np.ndim(u0[:, nn_indices][:5]) == 3, 'nn_u shape must have 3 dimension'
-        self.nn_u0 = u0[:, nn_indices]
-        return
+    # def compute_nn_D(self):
+    #     nn_indices = self.point_cloud.nn_indices.copy()
+    #     D = self.D.copy()
+    #
+    #     assert np.ndim(D) == 1, 'D shape must only has 1 dimension'
+    #     assert np.ndim(D[nn_indices]) == 2, 'nn_D shape must have 2 dimension'
+    #     self.nn_D = D[nn_indices]
+    #     return
 
-    def compute_nn_D(self):
-        nn_indices = self.point_cloud.nn_indices.copy()
-        D = self.D.copy()
+    # def assign_nn_D(self, nn_D):
+    #     self.nn_D = nn_D.copy()
+    #     return
 
-        assert np.ndim(D) == 1, 'D shape must only has 1 dimension'
-        assert np.ndim(D[nn_indices]) == 2, 'nn_D shape must have 2 dimension'
-        self.nn_D = D[nn_indices]
-        return
+    # def interpolate_D_not_used(self, dist_intp_coord_axis, order_acc):
+    #     # nn_coord = self.point_cloud.nn_coord.copy()
+    #     nn_D = self.nn_D.copy()
+    #     D = self.D.copy()
+    #
+    #     # assert nn_coord is not None, 'nn_coord is None'
+    #     assert nn_D is not None, 'nn_D is None'
+    #
+    #     number_of_pt_to_be_interpolated = order_acc + 2
+    #     ind = int(number_of_pt_to_be_interpolated / 2)
+    #
+    #     intp_D_axis = self.ut.idw_interpolate(dist_intp_coord_axis, nn_D)
+    #     # intp_D_axis = self.ut.idw_interpolate(intp_coord_axis, nn_coord, nn_D)
+    #     intp_D_axis[:, ind] = D
+    #     return intp_D_axis
 
-    def assign_nn_D(self, nn_D):
-        self.nn_D = nn_D.copy()
-        return
+    # def interpolate_D(self, dist_intp_coord_axis, nn_indices_intp_coord_axis, order_acc):
+    #     # nn_coord = self.point_cloud.nn_coord.copy()
+    #     n_neighbor = nn_indices_intp_coord_axis.shape[-1]
+    #     nn_D = self.D[nn_indices_intp_coord_axis].reshape([-1, n_neighbor])
+    #     dist_intp_coord_axis = dist_intp_coord_axis.reshape([-1, n_neighbor])
+    #     D = self.D.copy()
+    #     # assert nn_coord is not None, 'nn_coord is None'
+    #     assert nn_D is not None, 'nn_D is None'
+    #
+    #     fd_coeff_length = self.ut.fd_coeff_length(order_acc)
+    #     number_of_pt_to_be_interpolated = self.ut.compute_no_pt_needed_for_interpolation(fd_coeff_length,
+    #                                                                                      order_derivative=2)
+    #     ind = int(number_of_pt_to_be_interpolated / 2)
+    #
+    #     intp_D_axis = self.ut.idw_interpolate(dist_intp_coord_axis, nn_D)
+    #     # intp_D_axis = self.ut.idw_interpolate(intp_coord_axis, nn_coord, nn_D)
+    #     intp_D_axis = intp_D_axis.reshape([self.point_cloud.no_pt, number_of_pt_to_be_interpolated])
+    #     intp_D_axis[:, ind] = D
+    #     return intp_D_axis
 
-    def interpolate_D_not_used(self, dist_intp_coord_axis, order_acc):
-        # nn_coord = self.point_cloud.nn_coord.copy()
-        nn_D = self.nn_D.copy()
-        D = self.D.copy()
+    # def assign_intp_D_axis1(self, intp_D_axis1):
+    #     self.intp_D_axis1 = intp_D_axis1.copy()
+    #     return
+    #
+    # def assign_intp_D_axis2(self, intp_D_axis2):
+    #     self.intp_D_axis2 = intp_D_axis2.copy()
+    #     return
 
-        # assert nn_coord is not None, 'nn_coord is None'
-        assert nn_D is not None, 'nn_D is None'
+    # def interpolate_u(self, dt=None, duration=None):
+    #     nn_u = self.nn_u.copy()
+    #     self.fourier_smooth_next_time_pt_u(self.u, 3)
+    #     intp_coord_axis1 = self.intp_coord_axis1.copy()
+    #     intp_coord_axis2 = self.intp_coord_axis2.copy()
+    #     nn_coord = self.nn_coord.copy()
+    #
+    #     assert np.ndim(nn_u) == 3, 'nn_u shape must have 3 dimension'
+    #
+    #     time_pt = np.linspace(0, duration, int(duration / dt) + 1, endpoint=True, dtype='float64')
+    #     dist_intp_u_axis1 = self.point_cloud.dist_intp_coord_axis1.copy()
+    #     dist_intp_u_axis2 = self.point_cloud.dist_intp_coord_axis2.copy()
+    #     intp_u_axis1 = []
+    #     intp_u_axis2 = []
+    #
+    #     for t in range(1, len(time_pt)):
+    #         # intp_u_axis1.append(self.ut.idw_interpolate(intp_coord_axis1,
+    #         #                                             nn_coord, nn_u[t - 1]))
+    #         # intp_u_axis2.append(self.ut.idw_interpolate(intp_coord_axis2,
+    #         #                                             nn_coord, nn_u[t - 1]))
+    #
+    #         intp_u_axis1.append(self.ut.idw_interpolate(dist_intp_u_axis1, nn_u[t-1]))
+    #         intp_u_axis2.append(self.ut.idw_interpolate(dist_intp_u_axis2, nn_u[t-1]))
+    #     intp_u_axis1 = np.array(intp_u_axis1, dtype='float64')
+    #     intp_u_axis2 = np.array(intp_u_axis2, dtype='float64')
+    #
+    #     return intp_u_axis1, intp_u_axis2
 
-        number_of_pt_to_be_interpolated = order_acc + 2
-        ind = int(number_of_pt_to_be_interpolated / 2)
-
-        intp_D_axis = self.ut.idw_interpolate(dist_intp_coord_axis, nn_D)
-        # intp_D_axis = self.ut.idw_interpolate(intp_coord_axis, nn_coord, nn_D)
-        intp_D_axis[:, ind] = D
-        return intp_D_axis
-
-    def interpolate_D(self, dist_intp_coord_axis, nn_indices_intp_coord_axis, order_acc):
-        # nn_coord = self.point_cloud.nn_coord.copy()
-        n_neighbor = nn_indices_intp_coord_axis.shape[-1]
-        nn_D = self.D[nn_indices_intp_coord_axis].reshape([-1, n_neighbor])
-        dist_intp_coord_axis = dist_intp_coord_axis.reshape([-1, n_neighbor])
-        D = self.D.copy()
-        # assert nn_coord is not None, 'nn_coord is None'
-        assert nn_D is not None, 'nn_D is None'
-
-        fd_coeff_length = self.ut.fd_coeff_length(order_acc)
-        number_of_pt_to_be_interpolated = self.ut.compute_no_pt_needed_for_interpolation(fd_coeff_length,
-                                                                                         order_derivative=2)
-        ind = int(number_of_pt_to_be_interpolated / 2)
-
-        intp_D_axis = self.ut.idw_interpolate(dist_intp_coord_axis, nn_D)
-        # intp_D_axis = self.ut.idw_interpolate(intp_coord_axis, nn_coord, nn_D)
-        intp_D_axis = intp_D_axis.reshape([self.point_cloud.no_pt, number_of_pt_to_be_interpolated])
-        intp_D_axis[:, ind] = D
-        return intp_D_axis
-
-    def assign_intp_D_axis1(self, intp_D_axis1):
-        self.intp_D_axis1 = intp_D_axis1.copy()
-        return
-
-    def assign_intp_D_axis2(self, intp_D_axis2):
-        self.intp_D_axis2 = intp_D_axis2.copy()
-        return
-
-    def assign_boundary_condition(self, bc):
-        self.bc = bc
-        return
-
-    def interpolate_u(self, dt=None, duration=None):
-        nn_u = self.nn_u.copy()
-        self.fourier_smooth_next_time_pt_u(self.u, 3)
-        intp_coord_axis1 = self.intp_coord_axis1.copy()
-        intp_coord_axis2 = self.intp_coord_axis2.copy()
-        nn_coord = self.nn_coord.copy()
-
-        assert np.ndim(nn_u) == 3, 'nn_u shape must have 3 dimension'
-
-        time_pt = np.linspace(0, duration, int(duration / dt) + 1, endpoint=True, dtype='float64')
-        dist_intp_u_axis1 = self.point_cloud.dist_intp_coord_axis1.copy()
-        dist_intp_u_axis2 = self.point_cloud.dist_intp_coord_axis2.copy()
-        intp_u_axis1 = []
-        intp_u_axis2 = []
-
-        for t in range(1, len(time_pt)):
-            # intp_u_axis1.append(self.ut.idw_interpolate(intp_coord_axis1,
-            #                                             nn_coord, nn_u[t - 1]))
-            # intp_u_axis2.append(self.ut.idw_interpolate(intp_coord_axis2,
-            #                                             nn_coord, nn_u[t - 1]))
-
-            intp_u_axis1.append(self.ut.idw_interpolate(dist_intp_u_axis1, nn_u[t-1]))
-            intp_u_axis2.append(self.ut.idw_interpolate(dist_intp_u_axis2, nn_u[t-1]))
-        intp_u_axis1 = np.array(intp_u_axis1, dtype='float64')
-        intp_u_axis2 = np.array(intp_u_axis2, dtype='float64')
-
-        return intp_u_axis1, intp_u_axis2
-
-    def del_D_delV(self, u, interpolated_spacing, order_acc, coeff_matrix_first_der, coeff_matrix_second_der):
+    def del_D_delV_method1(self, u, interpolated_spacing, order_acc, coeff_matrix_first_der, coeff_matrix_second_der):
         assert np.ndim(u) == 1, 'u must be 1D array'
 
         c = self.c.copy()
         intp_D_axis1 = self.intp_D_axis1
         intp_D_axis2 = self.intp_D_axis2
 
+        ################ INTERPOLATION U ################
+        '''
         # ==== idw interpolation ======
-
         n_neighbor = self.point_cloud.nn_indices_intp_coord_axis1.shape[-1]
         fd_coeff_length = self.ut.fd_coeff_length(order_acc)
         number_of_pt_to_be_interpolated = self.ut.compute_no_pt_needed_for_interpolation(fd_coeff_length,
                                                                                          order_derivative=2)
-        ind = int(number_of_pt_to_be_interpolated / 2)
-        # ==== idw_interpolate with high V0 value first, include interpolated point to get nn =====
-        # points_to_interpolate = np.concatenate((self.point_cloud.intp_coord_axis1.reshape([-1, 3]),
-        #                                         self.point_cloud.intp_coord_axis2.reshape([-1, 3])),
-        #                                         axis=0)
-        # intp_u_axis1, intp_u_axis2 = self.ut.idw_interpolate_sort(self.point_cloud.coord, u, points_to_interpolate)
 
+        # METHOD 1: ==== idw_interpolate with high V0 value first, include interpolated point to get nn =====
+        points_to_interpolate = np.concatenate((self.point_cloud.intp_coord_axis1.reshape([-1, 3]),
+                                                self.point_cloud.intp_coord_axis2.reshape([-1, 3])),
+                                                axis=0)
+        intp_u_axis1, intp_u_axis2 = self.ut.idw_interpolate_sort(self.point_cloud.coord, u, points_to_interpolate)
+
+        # METHOD 2: === interpolate intp_u independently using individual neighbour ===
+        ind = int(number_of_pt_to_be_interpolated / 2)
         nn_u_axis1 = u[self.point_cloud.nn_indices_intp_coord_axis1].reshape([-1, n_neighbor])
         nn_u_axis2 = u[self.point_cloud.nn_indices_intp_coord_axis2].reshape([-1, n_neighbor])
         dist_intp_coord_axis1 = self.point_cloud.dist_intp_coord_axis1.reshape([-1, n_neighbor])
@@ -195,13 +211,34 @@ class DiffusionModel:
         intp_u_axis2 = intp_u_axis2.reshape([self.point_cloud.no_pt, number_of_pt_to_be_interpolated])
         intp_u_axis1[:, ind] = u.copy()
         intp_u_axis2[:, ind] = u.copy()
-        # ===============================================================
-        # intp_u_axis1 = self.ut.idw_interpolate(self.point_cloud.dist_intp_coord_axis1, nn_u)
-        # intp_u_axis2 = self.ut.idw_interpolate(self.point_cloud.dist_intp_coord_axis2, nn_u)
+        # METHOD3: ===============================================================
+        nn_u = u[self.point_cloud.nn_indices]
+        intp_u_axis1 = self.ut.idw_interpolate(self.point_cloud.dist_intp_coord_axis1, nn_u)
+        intp_u_axis2 = self.ut.idw_interpolate(self.point_cloud.dist_intp_coord_axis2, nn_u)
 
-        # === fourier fit first then use the smooth model to get intp_u
-        # fit_fourier_smooth_model = self.fourier_smooth_u(u, order_fourier_fit=5)
-        # intp_u_axis1, intp_u_axis2 = self.interpolate_u_fourier_model(fit_fourier_smooth_model)
+        # METHOD 4:=== fourier fit first then use the smooth model to get intp_u
+        fit_fourier_smooth_model = self.fourier_smooth_u(u, order_fourier_fit=5)
+        intp_u_axis1, intp_u_axis2 = self.interpolate_u_fourier_model(fit_fourier_smooth_model)
+        '''
+        # METHOD5:
+        intp_u_axis1, intp_u_axis2 = [], []
+        for i in range(self.point_cloud.no_pt):
+            nn_coord = self.point_cloud.nn_coord[i]
+            nn_u = u[self.point_cloud.nn_indices[i]]
+            r, phi, theta = self.ut.xyz2sphr(nn_coord)
+
+            intp_coord = np.concatenate((self.point_cloud.intp_coord_axis1[i],
+                                         self.point_cloud.intp_coord_axis2[i]), axis=0)
+            rintp, phiintp, thetaintp = self.ut.xyz2sph(intp_coord)
+
+            rbfi_s = self.interpolate(r, phi, theta, nn_u)
+            intp_var_u = rbfi_s(rintp, phiintp, thetaintp)
+            intp_var_u = np.array(intp_var_u, dtype='float64').reshape(([-1, 2]))
+            intp_u_axis1, intp_u_axis2 = intp_var_u[:, 0], intp_var_u[:, 1]
+
+
+        # intp_u_axis1, intp_u_axis2 = self.interpolate(u)
+        #########################################################################
 
         assert np.shape(intp_u_axis1)[-1] == np.shape(coeff_matrix_first_der)[0], \
             print('intp_u_axis1 shape of {} not match with coeff_matrix shape {}'.
@@ -215,6 +252,7 @@ class DiffusionModel:
                                       np.floor(np.shape(intp_u_axis1)[-1] / 2) + np.floor(fd_coeff_length / 2) + 1],
                                      dtype='int')
 
+        # # ==== method 1 ======
         dudx = np.matmul(intp_u_axis1, coeff_matrix_first_der) / interpolated_spacing
         dudy = np.matmul(intp_u_axis2, coeff_matrix_first_der) / interpolated_spacing
 
@@ -231,7 +269,31 @@ class DiffusionModel:
 
         dDdV_dx2 = np.squeeze(term1 + term2) + c
 
+        # ===== method 3 ======
+        # coeff_matrix = np.zeros([intp_u_axis1.shape[1], 1])
+        # mid = int(intp_u_axis1.shape[1] / 2)
+        # coeff = np.array([-1 / 12, 4 / 3, -5 / 2, 4 / 3, -1 / 12]).reshape([-1, 1])
+        # coeff_matrix[mid - int(len(coeff) / 2):mid + int(len(coeff) / 2) + 1] = coeff
+        #
+        # D_prime_dx = np.matmul(intp_D_axis1[:, shape_to_be_taken[0]:shape_to_be_taken[-1]],
+        #                        coeff_matrix_second_der) / interpolated_spacing
+        # D_prime_dy = np.matmul(intp_D_axis2[:, shape_to_be_taken[0]:shape_to_be_taken[-1]],
+        #                        coeff_matrix_second_der) / interpolated_spacing
+        # num_u_prime_dx = np.matmul(intp_u_axis1[:, shape_to_be_taken[0]:shape_to_be_taken[-1]],
+        #                            coeff_matrix_second_der) / interpolated_spacing
+        # num_u_prime_dy = np.matmul(intp_u_axis2[:, shape_to_be_taken[0]:shape_to_be_taken[-1]],
+        #                            coeff_matrix_second_der) / interpolated_spacing
+        # num_u_pp_dx = np.matmul(intp_u_axis1, coeff_matrix) / interpolated_spacing
+        # num_u_pp_dy = np.matmul(intp_u_axis2, coeff_matrix) / interpolated_spacing
+        #
+        # D = self.D.reshape([-1, 1])
+        # num_term1_3 = D_prime_dx * num_u_prime_dx + D_prime_dy * num_u_prime_dy
+        # num_term2_3 = D * num_u_pp_dx + D * num_u_pp_dy
+        # dDdV_dx2 = np.squeeze(num_term1_3 + num_term2_3) + c
+
         return dDdV_dx2
+
+
 
     # def fourier_smooth_u(self, u, order_fourier_fit=3):
     #     coord = self.point_cloud.coord.copy()
@@ -276,6 +338,7 @@ class DiffusionModel:
             {'t': self.t,
              'u0': self.u0,
              'u': self.u,
+             'u_exact': self.u_exact,
              'D': self.D,
              'c': self.c,
              'nn_u0': self.nn_u0,
@@ -291,6 +354,7 @@ class DiffusionModel:
         self.t = physics_model_instances['t']
         self.u0 = physics_model_instances['u0']
         self.u = physics_model_instances['u']
+        self.u_exact = physics_model_instances['u_exact']
         self.D = physics_model_instances['D']
         self.c = physics_model_instances['c']
         self.nn_u0 = physics_model_instances['nn_u0']
@@ -442,116 +506,24 @@ class DiffusionModel:
         print('Local coordinates computation - PASS')
     '''
 
+    def interpolate_rbf(self, var):
+        intp_var_axis1, intp_var_axis2 = [], []
 
-class BoundaryCondition:
-    def __init__(self, point_cloud=None, bc_region_2D=None,):
-        """
+        for i in range(self.point_cloud.no_pt):
+            nn_coord = self.point_cloud.nn_coord[i]
+            r, phi, theta = self.ut.xyz2sph(nn_coord)
+            nn_var = var[self.point_cloud.nn_indices[i]]
 
-        :param region: array
-        :param pointcloud:  object
-        """
-        self.bc_region_2D = bc_region_2D
-        self.point_cloud = point_cloud
+            intp_coord = np.concatenate((self.point_cloud.intp_coord_axis1[i], self.point_cloud.intp_coord_axis2[i]),
+                                        axis=0)
+            rintp, phiintp, thetaintp = self.ut.xyz2sph(intp_coord)
 
-        self.bc_type = None
-        return
+            rbfi_s = Rbf(r, phi, theta, nn_var, function=intp_function)
+            intp_var_nn_s = rbfi_s(rintp, phiintp, thetaintp)
 
-    def set_bc_type(self, bc_type):
-        self.bc_type = bc_type
-        return
+            intp_var_axis1.append(intp_var_nn_s[:int(len(intp_coord) / 2)])
+            intp_var_axis2.append(intp_var_nn_s[int(len(intp_coord) / 2):])
 
-    def call_bc(self, dudx=None, dudy=None):
-        if self.bc_type == 'neumann':
-            dudx, dudy = self.neumann(dudx, dudy)
-
-        if self.bc_type == 'periodic':
-            dudx, dudy = self.periodic(dudx, dudy)
-
-        return dudx, dudy
-
-    def periodic(self, dudx, dudy):
-        return dudx, dudy
-
-    def neumann(self, dudx, dudy):
-        """
-
-        :param dudx: array
-        :param dudy: array
-        :param region: array
-        :param coord: array
-        :return:array, array
-        """
-        ## x-axis
-        aa = self.point_cloud.intp_coord_axis1.shape[1]
-        bb = dudx.shape[-1]
-        idx_range = np.array([np.floor(aa/2) - np.floor(bb/2), np.floor(aa/2) + np.ceil(bb/2)], dtype=int)
-        glob_coord = self.point_cloud.intp_coord_axis1[:, idx_range[0]:idx_range[1]]
-        glob_coord = glob_coord.reshape([-1, 3])
-
-        idx_axis1 = self.find_coord_fall_in_range(glob_coord, self.bc_region_2D)
-        dudx_tmp = dudx.reshape([-1, ])
-        dudx_tmp[idx_axis1] = 0
-        dudx_tmp = dudx_tmp.reshape(dudx.shape)
-
-        ## y-axis
-        aa = self.point_cloud.intp_coord_axis2.shape[1]
-        bb = dudy.shape[-1]
-        idx_range = np.array([np.floor(aa / 2) - np.floor(bb / 2), np.floor(aa / 2) + np.ceil(bb / 2)], dtype=int)
-        glob_coord = self.point_cloud.intp_coord_axis2[:, idx_range[0]:idx_range[1]]
-        glob_coord = glob_coord.reshape([-1, 3])
-
-        idx_axis2 = self.find_coord_fall_in_range(glob_coord, self.bc_region_2D)
-        dudy_tmp = dudy.reshape([-1, ])
-        dudy_tmp[idx_axis2] = 0
-        dudy_tmp = dudy_tmp.reshape(dudy.shape)
-        
-        return dudx_tmp, dudy_tmp
-
-    def dirichlet(self, u, value_set):
-        """
-
-        :param u:
-        :param value_set:
-        :param region:
-        :param coord:
-        :return:
-        """
-        indices_list = self.find_coord_index(self.coord, self.region)
-        u[indices_list] = value_set
-        return u
-
-    @staticmethod
-    def find_coord_index(global_coord, list_coord_to_be_found):
-        """
-        list_coord_to_be_found must be a subset of global_coord
-
-        :param global_coord: array (n_coord x 3)
-        :param list_coord_to_be_found: array of coord to be found
-        :return:
-        """
-        list_coord_to_be_found = np.array(list_coord_to_be_found)
-        list_coord_to_be_found = np.reshape(list_coord_to_be_found, [-1, 3])
-        indices_list = []
-        for tmp_coord in list_coord_to_be_found:
-            indices = np.where((tmp_coord == global_coord).all(axis=1))
-            indices_list.append(indices[0])
-        return indices_list
-
-    @staticmethod
-    def find_coord_fall_in_range(glob_coord, range):
-        """
-
-        :param glob_coord: 2D array
-        :param range: list [xmin, xmax, ymin, ymax]
-        :return: int array
-        """
-
-        idx_axis1 = np.array([])
-        idx_axis1 = np.append(idx_axis1, np.argwhere(glob_coord[:, 0] <= range[0]).squeeze(), axis=0)
-        idx_axis1 = np.append(idx_axis1, np.argwhere(glob_coord[:, 0] >= range[1]).squeeze(), axis=0)
-        idx_axis1 = np.append(idx_axis1, np.argwhere(glob_coord[:, 1] <= range[2]).squeeze(), axis=0)
-        idx_axis1 = np.append(idx_axis1, np.argwhere(glob_coord[:, 1] >= range[3]).squeeze(), axis=0)
-        idx_axis1 = np.array(idx_axis1, dtype=int)
-        idx_axis1 = np.unique(idx_axis1)
-
-        return idx_axis1
+        intp_var_axis1 = np.array(intp_var_axis1, dtype='float64')
+        intp_var_axis2 = np.array(intp_var_axis2, dtype='float64')
+        return intp_var_axis1, intp_var_axis2

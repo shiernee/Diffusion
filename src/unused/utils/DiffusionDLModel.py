@@ -179,8 +179,8 @@ class DiffusionDLModel(tf.keras.Model):
 
     def initialize_weight(self):
         self.tf_weight_D = tf.Variable(tf.random.normal([1, self.no_pt, 1], mean=1.0, stddev=0.1,
-                                       dtype=tf.float64), trainable=True, name='D')
-        # self.tf_weight_D.assign(np.ones(self.tf_weight_D.shape))
+                                       dtype=tf.float64), trainable=False, name='D')
+        self.tf_weight_D.assign(np.ones(self.tf_weight_D.shape))
         self.tf_weight_c = tf.Variable(tf.random.normal([1, self.no_pt, 1], mean=0.0, stddev=0.1,
                                        dtype=tf.float64), trainable=False, name='c')
         self.tf_weight_c.assign(np.zeros(self.tf_weight_c.shape))

@@ -98,7 +98,7 @@ class ViewResultsUtils:
             # V_I = rbf(thetaI, phiI)
             # cbar = ax.imshow(V_I, origin='lower', extent=[thetaI.min(), thetaI.max(), phiI.min(), phiI.max()],
             #                  vmin=cbar_min, vmax=cbar_max)
-            ax.set_title('t={:.2f}'.format(self.t[i * step_plot]))
+            ax.set_title('t={:.5f}'.format(self.t[i * step_plot]))
             fig1.colorbar(cbar, ax=ax)
 
         fig1.tight_layout()
@@ -129,11 +129,11 @@ class ViewResultsUtils:
         for n in range(0, np.shape(var_specific_period)[0], skip_time_step):
             u_tmp = var_specific_period[n]
             # ==== sort theta for plotting raw data  (not used, sort theta)=====
-            # ax1.plot(theta[ind], u_specific_period[n, ind], label='time:{0:0.2f}'.format(n * dt))
+            ax1.plot(theta[ind], u_tmp, label='time:{0:0.2f}'.format(n * dt))
             # === smooth ====
-            rbf = Rbf(theta, phi, u_tmp, function='linear', smooth=1)
-            V_I = rbf(thetaI, phiI)
-            ax1.plot(thetaI[0], V_I[0], label='time:{0:0.2f}'.format(n * dt))
+            # rbf = Rbf(theta, phi, u_tmp, function='linear', smooth=1)
+            # V_I = rbf(thetaI, phiI)
+            # ax1.plot(thetaI[0], V_I[0], label='time:{0:0.2f}'.format(n * dt), vmin=0, vmax=1)
 
         ax1.set_xlabel('\u03F4')  #THETA
         ax1.set_ylabel('u')
