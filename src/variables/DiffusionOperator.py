@@ -2,7 +2,7 @@
 
 class DiffusionOperator:
 
-    def __init__(self,D):
+    def __init__(self, D):
         self.D = D # diffusion coefficient
 
     def eval(self,u):

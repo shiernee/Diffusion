@@ -3,6 +3,7 @@ import numpy as np
 
 from src.variables.BaseVariables import BaseVariables
 
+
 class GradVariables(BaseVariables):
 
     def __init__(self,point_cloud,interpolator,t):
@@ -50,6 +51,8 @@ class GradVariables(BaseVariables):
     # overload multiplication operator with numpy
     # =====================================
     def multiply(self,D):
+        if np.ndim(D) == 1:
+            D = D.reshape([-1, 1])
         self.val = self.val*D
 
    

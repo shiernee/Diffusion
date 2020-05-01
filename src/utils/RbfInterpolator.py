@@ -32,6 +32,7 @@ class RbfInterpolator:
 
         return intp_val  # see variables.py lines 50-70
     # =================================================
+
     def plot(self, x, y, z, xi, yi, zi, value, valuei):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -39,25 +40,4 @@ class RbfInterpolator:
         ax.scatter(xi, yi, zi, c=valuei, vmin=value.min(), vmax=value.max())
         plt.waitforbuttonpress()
         return
-
-
-
-''' HK: this one use for what?
-
-if __name__ == '__main__':
-    aa = {'interpolation_type': 'Rbf', 'function': 'cubic'}
-
-    from GeneratePoints import GeneratePoints
-    from Parameters import Parameters
-
-    p = Parameters()
-    gen_pt = GeneratePoints()
-    cart_coord, sph_coord = gen_pt.generate_points_sphere(no_pt=p.no_pt, sph_radius=1)
-    r, phi, theta = sph_coord[:, 0], sph_coord[:, 1], sph_coord[:, 2]
-    p.set_u_initial(r=r, phi=phi, theta=theta)
-
-    interpolate = InterpolationMethod(p.interpolate_method)
-    interpolate()
-'''
-
 

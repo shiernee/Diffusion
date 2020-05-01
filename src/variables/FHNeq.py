@@ -1,15 +1,18 @@
-from src.variables.variables               import variables
-from src.variables.linear_operator         import linear_operator
-from src.variables.cubic_operator          import cubic_operator
-from src.variables.diffusion_operator      import diffusion_operator
-from src.variables.differential_expression import differential_expression
+from src.variables.Variables               import Variables
+from src.variables.LinearOperator         import LinearOperator
+from src.variables.CubicOperator          import CubicOperator
+from src.variables.DiffusionOperator import DiffusionOperator
+from src.variables.DifferentialExpression import DifferentialExpression
 
 # solving this equation
 #
 #  dudt = div.(D*dudx) - u*(a-u)*(1-u) + b*w
 #  dwdt = c*u + d*w
 #
+#  dudt = div.(D*dudx) + u*(a-u)*(U-1) + w  #SN
+#  dwdt = epsilon*(beta*u - gamma*w - delta) #SN
 #
+
 
 class FHNeq:
 
@@ -17,17 +20,17 @@ class FHNeq:
 
         self.dt = dt
 
-        self.deUu = differential_expression()
-        self.deUw = differential_expression()
-        self.deWu = differential_expression()
-        self.deWw = differential_expression()
+        self.deUu = DifferentialExpression()
+        self.deUw = DifferentialExpression()
+        self.deWu = DifferentialExpression()
+        self.deWw = DifferentialExpression()
 
         # define the differential operators
-        self.diff = diffusion_operator(D)
-        self.cubic = cubic_operator(a)
-        self.linear0 = linear_operator(b)
-        self.linear1 = linear_operator(c)
-        self.linear2 = linear_operator(d)
+        self.diff = DiffusionOperator(D)
+        self.cubic = CubicOperator(a)
+        self.linear0 = LinearOperator(b)
+        self.linear1 = LinearOperator(c)
+        self.linear2 = LinearOperator(d)
 
         # add terms into FHN equations
         self.deUu.push_back(self.diff)    #div.(D*dudw)
@@ -37,10 +40,10 @@ class FHNeq:
         self.deWw.push_back(self.linear2) #+d*w
 
         # define the variables to compute
-        self.u0 = variables(pt_cld,interp,dt)
-        self.u1 = variables(pt_cld,interp,dt)
-        self.w0 = variables(pt_cld,interp,dt)
-        self.w1 = variables(pt_cld,interp,dt)
+        self.u0 = Variables(pt_cld,interp,dt)
+        self.u1 = Variables(pt_cld,interp,dt)
+        self.w0 = Variables(pt_cld,interp,dt)
+        self.w1 = Variables(pt_cld,interp,dt)
 
         self.U = [self.u0,self.u1]
         self.W = [self.w0,self.w1]
@@ -52,6 +55,8 @@ class FHNeq:
         dudt += self.deUw.eval(w_cur)
         dwdt  = self.deWu.eval(u_cur)
         dwdt += self.deWw.eval(w_cur)
+
+        print('dudt {}'.format(dudt))
 
         u_nxt.eval(dudt,self.dt)
         w_nxt.eval(dwdt,self.dt)

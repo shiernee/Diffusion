@@ -4,7 +4,7 @@
 
 class LinearOperator:
 
-    def __init__(self,b):
+    def __init__(self, b):
         self.b = b
 
     def eval(self,u):

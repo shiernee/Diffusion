@@ -9,11 +9,12 @@ import pandas as pd
 
 class PointCloud:
     # ===== this model will compute all the neccesary parameter needed for forward solver====== #
-    def __init__(self, case):
+    def __init__(self, coord, param_file):
+        self.param_file = param_file
 
         # ==========================================================
-        self.coord = None
-        self.no_pt = None
+        self.coord = coord
+        self.no_pt = len(self.coord)
 
         self.nbrs = None
         self.dist_nn = None
@@ -27,13 +28,7 @@ class PointCloud:
 
         # ============================================================
 
-        coordinate_file = '../data/{}/coordinates.csv'.format(case)
-        self.parameter_file = '../data/{}/param_template.csv'.format(case)
-
-        self.coord = pd.read_csv(coordinate_file).values
-        self.no_pt = len(self.coord)
-
-        self.param = pd.read_csv(self.parameter_file)
+        self.param = pd.read_csv(self.param_file)
         nn_algorithm = self.param['nn_algorithm'].values[0]
         nn_radius_limit = self.param['nn_radius_limit'].values[0]
         interpolated_spacing_method = self.param['interpolated_spacing_method'].values[0]
@@ -54,9 +49,8 @@ class PointCloud:
 
     def write_interpolated_spacing_to_parameter_file(self):
         self.param['interpolated_spacing_value'] = cp.copy(self.interpolated_spacing)
-        self.param.to_csv(self.parameter_file, index=False, index_label=False)
+        self.param.to_csv(self.param_file, index=False, index_label=False)
         return
-
 
     def compute_nn_indices_neighbor_(self, nn_algorithm, nn_radius_limit=None, n_neighbors=None):
         """
