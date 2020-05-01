@@ -8,3 +8,5 @@ forHK.zip
 src/variables/__pycache__/
 
 src/pointcloud/__pycache__/
+
+data/

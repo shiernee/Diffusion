@@ -9,7 +9,7 @@ class DataFrame:
         self.df = pd.read_csv('{}'.format(self.filename), index_col=False)
 
     def empty_df(self):
-        columns = self.df.columns
+        columns = ['x', 'y', 'z']
         self.df = pd.DataFrame(columns=columns)
 
     def get_df(self):

@@ -33,7 +33,7 @@ class Testing(unittest.TestCase):
         u.set_val(10)
 
         cub_op = CubicOperator(3)
-        self.assertEqual(cub_op.eval(u), 630)
+        self.assertEqual(cub_op.eval(u), -630)
         print('test_cubicoperator done')
 
     def test_diffusionoperator(self):
