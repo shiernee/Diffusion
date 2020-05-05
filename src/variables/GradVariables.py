@@ -6,9 +6,11 @@ from src.variables.BaseVariables import BaseVariables
 
 class GradVariables(BaseVariables):
 
-    def __init__(self,point_cloud,interpolator,t):
+    # HK def __init__(self,point_cloud,interpolator,t):
+    def __init__(self,point_cloud,interpolator,finite_diff,t):
         super(GradVariables,self).__init__(t)
 
+        self.finite_diff = finite_diff
         self.div_updated = False
         self.val_copy    = None 
         self.div_copy    = None
@@ -23,13 +25,25 @@ class GradVariables(BaseVariables):
     def eval_div(self): # divergence
         self.div_updated = True
         self.div = []
-        for grid in self.point_cloud.grid_list():
+        for grid in self.point_cloud.get_grid_list():
             gridvalx = self.interpolator.eval(grid, self.val[:, 0])
             gridvaly = self.interpolator.eval(grid, self.val[:, 1])
             mid = int(len(gridvalx) / 2)
-            gradx = (gridvalx[mid, mid + 1] - gridvalx[mid, mid - 1]) / (2 * self.point_cloud.interpolated_spacing)
-            grady = (gridvaly[mid - 1, mid] - gridvaly[mid + 1, mid]) / (2 * self.point_cloud.interpolated_spacing)
-            self.div.append(gradx + grady)
+            # HK
+            gradxx,gradxy = self.finite_diff.eval(gridvalx,mid,self.point_cloud.interpolated_spacing)
+            gradyx,gradyy = self.finite_diff.eval(gridvaly,mid,self.point_cloud.interpolated_spacing)
+            #gradx = (gridvalx[mid, mid + 1] - gridvalx[mid, mid - 1]) / (2 * self.point_cloud.interpolated_spacing)
+            #grady = (gridvaly[mid - 1, mid] - gridvaly[mid + 1, mid]) / (2 * self.point_cloud.interpolated_spacing)
+            # print('gradxx ',gradxx)
+            # print('gradxy ',gradxy)
+            # print('gradyx ',gradyx)
+            # print('gradyy ',gradyy)
+            # print('div spacing ',self.point_cloud.interpolated_spacing)
+            # print('gridvalx ',gridvalx)
+            # print('gridvaly ',gridvaly)
+
+
+            self.div.append(gradxx + gradyy)
 
         self.div = np.asarray(self.div)
         self.check_bounds(self.div)

@@ -19,14 +19,17 @@ class Variables(BaseVariables):
 
     # use point cloud to specify the
     # storage and differentials of variable
-    def __init__(self,point_cloud,interpolator,t):
+    # HK def __init__(self,point_cloud,interpolator,t):
+    def __init__(self,point_cloud,interpolator,finite_diff,t):
         super(Variables,self).__init__(t)
 
         self.ddx_updated = False
         self.point_cloud = point_cloud
         self.interpolator = interpolator
+        # HK 
+        self.finite_diff = finite_diff
 
-        self.grad = GradVariables(point_cloud,interpolator,t)
+        self.grad = GradVariables(point_cloud,interpolator,finite_diff,t)
 
     # =====================================
     # up is the value of u evaluated at another time
@@ -42,17 +45,25 @@ class Variables(BaseVariables):
         self.ddx_updated = True
 
         ddx = []  # HK
-        for grid in self.point_cloud.grid_list():
+        for grid in self.point_cloud.get_grid_list():
             # grid gives the control points and points to be interpolated
             # control points means the points in point cloud with function
             # values. control points include the current point and neighbor
             # points
             gridval = self.interpolator.eval(grid, self.val)
             mid = int(len(gridval)/2)
-            gradx = (gridval[mid, mid + 1] - gridval[mid, mid - 1]) / \
-                    (2 * self.point_cloud.interpolated_spacing)
-            grady = (gridval[mid - 1, mid] - gridval[mid + 1, mid]) / \
-                    (2 * self.point_cloud.interpolated_spacing)
+
+            gradx,grady = self.finite_diff.eval(gridval,mid,self.point_cloud.interpolated_spacing)
+
+            #print('gradx ',gradx)
+            #print('grady ',grady)
+            #print('ddx spacing ',self.point_cloud.interpolated_spacing)
+            #print('gridval ',gridval)
+
+            #gradx = (gridval[mid, mid + 1] - gridval[mid, mid - 1]) / \
+            #        (2 * self.point_cloud.interpolated_spacing)
+            #grady = (gridval[mid - 1, mid] - gridval[mid + 1, mid]) / \
+            #        (2 * self.point_cloud.interpolated_spacing)
             ddx.append([gradx, grady])
         # SSN: do we need to convert ddx as list into numpy?
         ddx = np.asarray(ddx)  # HK

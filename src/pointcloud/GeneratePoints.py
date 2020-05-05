@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
-from pathlib import Path
+from os import path
 
 np.random.seed(23873)
 
@@ -20,10 +20,9 @@ class GenerateNiederreiterDatasets:
         self.max_x = max_x
         self.max_y = max_y
 
-        ut = Utils()
-
         # ===================================
-        filename = '../data/niederreiter2_02_10000.csv'
+        parent_file = path.dirname(path.dirname(path.abspath(__file__)))
+        filename = os.path.join(parent_file, "data", "niederreiter2_02_10000.csv")
         dataframe_raw = pd.read_csv(filename)
         dataframe_raw.columns = ['x', 'y']
 
@@ -38,12 +37,13 @@ class GenerateNiederreiterDatasets:
         return
 
     def create_README_file(self, path):
-        with open('{}/README.txt'.format(path), mode='w', newline='') as csv_file:
+        filename = os.path.join(path, "README.txt")
+        with open(filename, mode='w', newline='') as csv_file:
             csv_file.write('Niederreiter\n')
             csv_file.write('no_pt:{}\n'.format(self.no_pt))
             csv_file.write('max_x:{}\n'.format(self.max_x))
             csv_file.write('max_y:{}\n'.format(self.max_y))
-        print('{}/README.txt'.format(path))
+        print('{}'.format(filename))
 
 
 class GenerateRegular2DGrid:
@@ -75,12 +75,13 @@ class GenerateRegular2DGrid:
         return
 
     def create_README_file(self, path):
-        with open('{}/README.txt'.format(path), mode='w', newline='') as csv_file:
+        filename = os.path.join(path, "README.txt")
+        with open(filename, mode='w', newline='') as csv_file:
             csv_file.write('Regular2DGrid\n')
             csv_file.write('no_pt:{}\n'.format(self.no_pt))
             csv_file.write('max_x:{}\n'.format(self.max_x))
             csv_file.write('max_y:{}\n'.format(self.max_y))
-        print('{}/README.txt'.format(path))
+        print('{}'.format(filename))
 
 
 class GenerateScatter2DPoints:
@@ -108,12 +109,13 @@ class GenerateScatter2DPoints:
         return
 
     def create_README_file(self, path):
-        with open('{}/README.txt'.format(path), mode='w', newline='') as csv_file:
+        filename = os.path.join(path, "README.txt")
+        with open(filename, mode='w', newline='') as csv_file:
             csv_file.write('Scatter2DGrid\n')
             csv_file.write('no_pt:{}\n'.format(self.no_pt))
             csv_file.write('max_x:{}\n'.format(self.max_x))
             csv_file.write('max_y:{}\n'.format(self.max_y))
-        print('{}/README.txt'.format(path))
+        print('{}'.format(filename))
 
 
 class GenerateSphPoints:
@@ -145,11 +147,12 @@ class GenerateSphPoints:
         return
 
     def create_README_file(self, path):
-        with open('{}/README.txt'.format(path), mode='w', newline='') as csv_file:
+        filename = os.path.join(path, "README.txt")
+        with open(filename, mode='w', newline='') as csv_file:
             csv_file.write('sphere\n')
             csv_file.write('no_pt:{}\n'.format(self.no_pt))
             csv_file.write('sphere_radius:{}\n'.format(self.sph_radius))
-        print('{}/README.txt'.format(path))
+        print('{}'.format(filename))
 
 
 class Utils:
@@ -189,28 +192,6 @@ class Utils:
         idx = np.argwhere((x == 0.0) & (y == 0))
         phi[idx] = 0.0
         return r, phi, theta
-
-    @staticmethod
-    def file_number_case():
-        i = 1
-        while os.path.exists('../data/case{}/'.format(i)):
-            i += 1
-        return i
-
-    @staticmethod
-    def file_number_testcase():
-        i = 1
-        while os.path.exists('../data/testcase{}/'.format(i)):
-            i += 1
-        return i
-
-    @staticmethod
-    def make_test_folder():
-        ut = Utils()
-        i = ut.file_number_testcase()
-        saved_dir = '../data/testcase{}'.format(i)
-        os.mkdir(saved_dir)
-        return saved_dir
 
 
 

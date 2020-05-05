@@ -1,3 +1,4 @@
+import os
 from os import sys, path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -6,13 +7,16 @@ from src.variables.FHNeq     import FHNeq
 from src.pointcloud.PointCloud import PointCloud
 from src.utils.RbfInterpolator import RbfInterpolator
 from src.utils.Parameters import Parameters
+from src.variables.FiniteDiff2ndOrder import FiniteDiff2ndOrder
 from src.utils.DataFrame import DataFrame
 import numpy as np
 
 
 if __name__ == '__main__':
-    filename = 'C:\\Users\sawsn\Desktop\Shiernee\Diffusion\data\\testcase\\database.csv'
-    param_file = "C:\\Users\sawsn\Desktop\Shiernee\Diffusion\data\\testcase\\param_template.csv"
+
+    parent_file = path.dirname(path.dirname(path.abspath(__file__)))
+    filename = os.path.join(parent_file, "data", "testcase", "database.csv")
+    param_file = os.path.join(parent_file, "data", "testcase", "param_template.csv")
 
     dataframe = DataFrame(filename)
     coord = dataframe.get_coord()
@@ -38,9 +42,10 @@ if __name__ == '__main__':
     print('==============================================================')
 
     interp = RbfInterpolator(pt_cld)
+    finite_diff = FiniteDiff2ndOrder()
 
-    u = Variables(pt_cld, interp, 0)
-    w = Variables(pt_cld, interp, 0)
+    u = Variables(pt_cld, interp, finite_diff, 0)
+    w = Variables(pt_cld, interp, finite_diff, 0)
     u.set_val(u0)  # set to some initial values
     w.set_val(w0)  # set to some initial values
     
@@ -54,7 +59,7 @@ if __name__ == '__main__':
     c = np.ones(u.val.shape)
     d = np.ones(u.val.shape)
 
-    fhn = FHNeq(a, b, c, d, D, param.dt, pt_cld, interp)
+    fhn = FHNeq(a, b, c, d, D, param.dt, pt_cld, interp, finite_diff)
 
     fhn.integrate(u, w, param.nstep)
     print('u ', u.val)

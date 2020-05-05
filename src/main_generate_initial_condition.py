@@ -1,3 +1,7 @@
+import os
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
 import numpy as np
 from pathlib import Path
 from src.utils.DataFrame import DataFrame
@@ -36,9 +40,12 @@ def cos_theta(theta):
 def sin_theta_square_cos_phi(theta, phi):
     return np.sin(theta) ** 2 * np.cos(phi), 'sin_theta_square_cos_phi'
 
-if __name__ == '__main__':
 
-    filename = 'C:\\Users\sawsn\Desktop\Shiernee\Diffusion\data\\testcase\\database.csv'
+if __name__ == '__main__':
+    parent_file = path.dirname(path.dirname(path.abspath(__file__)))
+    filename = os.path.join(parent_file, "data", "testcase", "database.csv")
+    param_file = os.path.join(parent_file, "data", "testcase", "param_template.csv")
+
     dataframe = DataFrame(filename)
 
     coord = dataframe.get_coord()
@@ -53,10 +60,11 @@ if __name__ == '__main__':
     dataframe.save_df()
 
     path = Path(filename).parent
-    with open('{}/README.txt'.format(path), mode='a', newline='') as csv_file:
+    filename = os.path.join(path, "README.txt")
+    with open('{}'.format(filename), mode='a', newline='') as csv_file:
         csv_file.write('u0: {}\n'.format(init_cond))
         csv_file.write('w0: zeros\n')
-    print('/{}/README.txt'.format(path))
+    print('{}'.format(filename))
 
 
 

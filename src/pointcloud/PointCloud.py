@@ -118,11 +118,12 @@ class PointCloud:
         local_grid = np.zeros([self.no_pt, local_interp_size, local_interp_size, 3])
 
         for i in range(self.no_pt):
-            for row in range(-int(local_interp_size/2), int(local_interp_size/2)+1):
-                for col in range(-int(local_interp_size/2), int(local_interp_size/2)+1):
+            for row in range((local_interp_size)):
+                for col in range((local_interp_size)):
                     local_grid[i, row, col] = self.coord[i] + \
-                                               col * self.interpolated_spacing * self.local_axis2[i] + \
-                                               row * self.interpolated_spacing * self.local_axis1[i]
+                                              (col - 2) * self.interpolated_spacing * self.local_axis2[i] + \
+                                              (row - 2) * self.interpolated_spacing * self.local_axis1[i]
+
         self.local_grid = local_grid
         return
 
@@ -134,8 +135,8 @@ class PointCloud:
     def compute_no_pt_needed_for_interpolation(fd_coeff_length, order_derivative):
         return fd_coeff_length * order_derivative - 1
 
-    def grid_list(self):
-        return list(zip(self.local_grid.copy(), self.nn_indices.copy()))
+    def get_grid_list(self):
+        return list(zip(self.local_grid.copy(), self.nn_indices.copy(), self.dist_nn.copy()))
 
     @staticmethod
     def sph2xyz(sph_coord):

@@ -10,6 +10,8 @@ class InterpolatedSpacing:
         :param kwargs: cart_coord, interpolated_spacing
         """
 
+        self.min_spacing = 0.05 #HK min spacing
+
         if method == 'avg_dx':
             self.interpolated_spacing = self.interpolated_spacing_avg_dx(cart_coord)
         elif method == 'min_dist':
@@ -28,10 +30,17 @@ class InterpolatedSpacing:
         r, phi, theta = self.xyz2sph(cart_coord)
         no_pt = len(cart_coord)
         r = r.mean()
-        return np.sqrt(4 * np.pi * r ** 2 / no_pt)
+        return np.sqrt(4 * np.pi * r ** 2 / no_pt) / 2
 
     def interpolated_spacing_min_dist(self, cart_coord):
-        return distance.pdist(cart_coord).min()
+
+        # HK return distance.pdist(cart_coord).min()
+        # HK cal_spacing = distance.pdist(cart_coord).min()
+        # HK return min(cal_spacing,self.min_spacing)
+        cal_spacing = distance.pdist(cart_coord).min()
+        return min(cal_spacing,self.min_spacing)
+
+        # HK return distance.pdist(cart_coord).min()
 
     @staticmethod
     def xyz2sph(cart_coord):

@@ -1,3 +1,7 @@
+import os
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
 from src.pointcloud.GeneratePoints import *
 from src.utils.DataFrame import DataFrame
 from pathlib import Path
@@ -6,7 +10,9 @@ if __name__ == '__main__':
 
     no_pt = 1000
     sph_radius = 1
-    filename = 'C:\\Users\sawsn\Desktop\Shiernee\Diffusion\data\\testcase\\database.csv'
+    parent_file = path.dirname(path.dirname(path.abspath(__file__)))
+    filename = os.path.join(parent_file, "data", "testcase", "database.csv")
+
     path = Path(filename)
 
     gp = GenerateSphPoints(no_pt, sph_radius)

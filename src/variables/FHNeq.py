@@ -16,7 +16,7 @@ from src.variables.DifferentialExpression import DifferentialExpression
 
 class FHNeq:
 
-    def __init__(self,a,b,c,d,D,dt,pt_cld,interp):
+    def __init__(self,a,b,c,d,D,dt,pt_cld,interp,finite_diff):
 
         self.dt = dt
 
@@ -40,10 +40,10 @@ class FHNeq:
         self.deWw.push_back(self.linear2) #+d*w
 
         # define the variables to compute
-        self.u0 = Variables(pt_cld,interp,dt)
-        self.u1 = Variables(pt_cld,interp,dt)
-        self.w0 = Variables(pt_cld,interp,dt)
-        self.w1 = Variables(pt_cld,interp,dt)
+        self.u0 = Variables(pt_cld,interp,finite_diff, dt)
+        self.u1 = Variables(pt_cld,interp,finite_diff, dt)
+        self.w0 = Variables(pt_cld,interp,finite_diff, dt)
+        self.w1 = Variables(pt_cld,interp,finite_diff, dt)
 
         self.U = [self.u0,self.u1]
         self.W = [self.w0,self.w1]
