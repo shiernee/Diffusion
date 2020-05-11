@@ -16,20 +16,19 @@ from src.variables.GradVariables import GradVariables
 
 
 class Variables(BaseVariables):
-
     # use point cloud to specify the
     # storage and differentials of variable
-    # HK def __init__(self,point_cloud,interpolator,t):
-    def __init__(self,point_cloud,interpolator,finite_diff,t):
+
+    def __init__(self,point_cloud,interpolator,gradient_algo,t):
         super(Variables,self).__init__(t)
 
         self.ddx_updated = False
         self.point_cloud = point_cloud
         self.interpolator = interpolator
-        # HK 
-        self.finite_diff = finite_diff
 
-        self.grad = GradVariables(point_cloud,interpolator,finite_diff,t)
+        self.gradient_algo = gradient_algo
+
+        self.grad = GradVariables(point_cloud,interpolator,gradient_algo,t)
 
     # =====================================
     # up is the value of u evaluated at another time
@@ -53,21 +52,10 @@ class Variables(BaseVariables):
             gridval = self.interpolator.eval(grid, self.val)
             mid = int(len(gridval)/2)
 
-            gradx,grady = self.finite_diff.eval(gridval,mid,self.point_cloud.interpolated_spacing)
-
-            #print('gradx ',gradx)
-            #print('grady ',grady)
-            #print('ddx spacing ',self.point_cloud.interpolated_spacing)
-            #print('gridval ',gridval)
-
-            #gradx = (gridval[mid, mid + 1] - gridval[mid, mid - 1]) / \
-            #        (2 * self.point_cloud.interpolated_spacing)
-            #grady = (gridval[mid - 1, mid] - gridval[mid + 1, mid]) / \
-            #        (2 * self.point_cloud.interpolated_spacing)
+            gradx,grady = self.gradient_algo.eval(gridval,mid,self.point_cloud.interpolated_spacing)
             ddx.append([gradx, grady])
-        # SSN: do we need to convert ddx as list into numpy?
-        ddx = np.asarray(ddx)  # HK
-        self.check_bounds(ddx) # always check
+        ddx = np.asarray(ddx)  
+        self.check_bounds(ddx, 'Variables.py58') # always check
 
         self.grad.set_val(ddx)
     # =====================================

@@ -81,6 +81,7 @@ def view_3D_V(coord, V):
 
 def view_phi_theta_V(coord, V):
     ut = Utils()
+
     _, phi, theta = ut.xyz2sph(coord)
 
     fig = plt.figure()

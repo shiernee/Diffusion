@@ -1,0 +1,3 @@
+casefile,C:\Users\sawsn\Desktop\Shiernee\Diffusion\data\testcase\database.csv
+min_intp_spacing,0.05
+duration,4

@@ -1,40 +1,19 @@
 import os
 from os import sys, path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 import numpy as np
 from pathlib import Path
 from src.utils.DataFrame import DataFrame
-
-
-def xyz2sph(cart_coord):
-    x, y, z = cart_coord[:, 0], cart_coord[:, 1], cart_coord[:, 2]
-    r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-    theta = np.arccos(z / r)
-
-    phi = np.zeros_like(theta)
-    idx = np.argwhere(x > 0.0).squeeze()
-    phi[idx] = np.arctan(y[idx] / x[idx])
-
-    idx = np.argwhere((x < 0.0) & (y >= 0)).squeeze()
-    phi[idx] = np.arctan(y[idx] / x[idx]) + np.pi
-
-    idx = np.argwhere((x < 0.0) & (y < 0)).squeeze()
-    phi[idx] = np.arctan(y[idx] / x[idx]) - np.pi
-
-    idx = np.argwhere((x == 0) & (y > 0)).squeeze()
-    phi[idx] = np.pi / 2
-
-    idx = np.argwhere((x == 0) & (y < 0)).squeeze()
-    phi[idx] = - np.pi / 2
-
-    idx = np.argwhere((x == 0.0) & (y == 0))
-    phi[idx] = 0.0
-    return r, phi, theta
-
+from Utils.Utils import xyz2r_phi_theta
 
 def cos_theta(theta):
     return np.cos(theta), 'cos_theta'
+
+
+def cos_x(x):
+    return np.cos(x), 'cos_x'
 
 
 def sin_theta_square_cos_phi(theta, phi):
@@ -49,8 +28,10 @@ if __name__ == '__main__':
     dataframe = DataFrame(filename)
 
     coord = dataframe.get_coord()
-    r, phi, theta = xyz2sph(coord)
+    x, y, z = coord[:, 0], coord[:, 1], coord[:, 2]
+    r, phi, theta = xyz2r_phi_theta(x, y, z)
 
+    # u0, init_cond = cos_x(x)
     # u0, init_cond = cos_theta(theta)
     u0, init_cond = sin_theta_square_cos_phi(theta, phi)
     w0 = np.zeros_like(u0)

@@ -18,7 +18,6 @@ class BaseVariables:
     def __init__(self, t):
         self.val = None
         self.t = t # time
-        self.max_value = 1000  # HK
    # =====================================
     def eval(self,dudt,dt):
         self.ddx_updated = False
@@ -60,7 +59,12 @@ class BaseVariables:
     # =====================================
     # HK: check that ddx contains valid numbers
     # =====================================
-    def check_bounds(self,values):
-        bool = np.logical_not(abs(values) < self.max_value)
-        assert not(np.any(bool)),'variables.py: invalid numeric in ddx'
+    def check_bounds(self, values, from_where, max_val=1000):
 
+        bool = (abs(values) > max_val)
+
+        if (not(np.any(bool))) is False:
+            print('check bounds from ',from_where,' value ',values)
+            print('max value ',values.max())
+
+        assert (not(np.any(bool))), from_where+'invalid numeric in ddx'

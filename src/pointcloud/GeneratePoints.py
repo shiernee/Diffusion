@@ -1,7 +1,12 @@
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))))
+sys.path.append(path.dirname(path.dirname(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))))
+
 import pandas as pd
 import numpy as np
 import os
 from os import path
+from Utils.Utils import r_phi_theta2xyz
 
 np.random.seed(23873)
 
@@ -61,8 +66,6 @@ class GenerateRegular2DGrid:
         self.max_x = max_x
         self.max_y = max_y
 
-        ut = Utils()
-
         # ===================================
         len_x, len_y = int(np.sqrt(no_pt)), int(np.sqrt(no_pt))
         x = np.linspace(0, max_x, len_x)
@@ -97,8 +100,6 @@ class GenerateScatter2DPoints:
         self.max_x = max_x
         self.max_y = max_y
 
-        ut = Utils()
-
         # ===================================
         x = np.random.rand(no_pt, ) * max_x
         y = np.random.rand(no_pt, ) * max_y
@@ -130,8 +131,6 @@ class GenerateSphPoints:
         self.no_pt = no_pt
         self.sph_radius = sph_radius
 
-        ut = Utils()
-
         # ===========================================
         phi = np.random.uniform(-np.pi, np.pi, no_pt)
         theta = np.random.uniform(0, np.pi, no_pt)
@@ -140,7 +139,7 @@ class GenerateSphPoints:
         sph_coord = np.zeros([no_pt, 3])
         sph_coord[:, 0], sph_coord[:, 1], sph_coord[:, 2] = radius, phi, theta
 
-        x, y, z = ut.sph2xyz(sph_coord)
+        x, y, z = r_phi_theta2xyz(radius, phi, theta)
 
         self.cart_coord = np.zeros([no_pt, 3])
         self.cart_coord[:, 0], self.cart_coord[:, 1], self.cart_coord[:, 2] = x, y, z
@@ -155,43 +154,6 @@ class GenerateSphPoints:
         print('{}'.format(filename))
 
 
-class Utils:
-    def __init__(self):
-        return
-
-    @staticmethod
-    def sph2xyz(sph_coord):
-        sph_radius, phi, theta = sph_coord[:, 0], sph_coord[:, 1], sph_coord[:, 2]
-        x = sph_radius * np.sin(theta) * np.cos(phi)
-        y = sph_radius * np.sin(theta) * np.sin(phi)
-        z = sph_radius * np.cos(theta)
-        return x, y, z
-
-    @staticmethod
-    def xyz2sph(cart_coord):
-        x, y, z = cart_coord[:, 0], cart_coord[:, 1], cart_coord[:, 2]
-        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-        theta = np.arccos(z / r)
-
-        phi = np.zeros_like(theta)
-        idx = np.argwhere(x > 0.0).squeeze()
-        phi[idx] = np.arctan(y[idx] / x[idx])
-
-        idx = np.argwhere((x < 0.0) & (y >= 0)).squeeze()
-        phi[idx] = np.arctan(y[idx] / x[idx]) + np.pi
-
-        idx = np.argwhere((x < 0.0) & (y < 0)).squeeze()
-        phi[idx] = np.arctan(y[idx] / x[idx]) - np.pi
-
-        idx = np.argwhere((x == 0) & (y > 0)).squeeze()
-        phi[idx] = np.pi / 2
-
-        idx = np.argwhere((x == 0) & (y < 0)).squeeze()
-        phi[idx] = - np.pi / 2
-
-        idx = np.argwhere((x == 0.0) & (y == 0))
-        phi[idx] = 0.0
-        return r, phi, theta
 
 
 

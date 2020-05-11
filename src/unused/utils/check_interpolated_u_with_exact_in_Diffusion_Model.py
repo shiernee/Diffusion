@@ -10,6 +10,11 @@ step:
 created on 19 Apr 2020 by snsaw
 '''
 
+import os
+from os import sys, path
+sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
+
+from Utils.Utils import xyz2r_phi_theta
 
 var = u.copy()
 error_c= []
@@ -17,7 +22,8 @@ for i in range(self.point_cloud.no_pt):
     intp_coord = np.concatenate((self.point_cloud.intp_coord_axis1[i],
                                  self.point_cloud.intp_coord_axis2[i]),
                                  axis=0)
-    rintp, phiintp, thetaintp = self.ut.xyz2sph(intp_coord)
+    x, y, z = intp_coord[:, 0], intp_coord[:, 1], intp_coord[:, 2]
+    rintp, phiintp, thetaintp = xyz2sph(x, y, z)
     exact_sln = np.cos(thetaintp)
 
     numerical_sln = np.concatenate((intp_u_axis1[i], intp_u_axis2[i]), axis=0)

@@ -3,6 +3,7 @@ from src.variables.LinearOperator         import LinearOperator
 from src.variables.CubicOperator          import CubicOperator
 from src.variables.DiffusionOperator import DiffusionOperator
 from src.variables.DifferentialExpression import DifferentialExpression
+import numpy as np
 
 # solving this equation
 #
@@ -16,9 +17,9 @@ from src.variables.DifferentialExpression import DifferentialExpression
 
 class FHNeq:
 
-    def __init__(self,a,b,c,d,D,dt,pt_cld,interp,finite_diff):
+    def __init__(self, a, b, c, d, D, pt_cld, interp, finite_diff):
 
-        self.dt = dt
+        self.dt = 0.5 * pt_cld.interpolated_spacing ** 2 / np.max(D)
 
         self.deUu = DifferentialExpression()
         self.deUw = DifferentialExpression()
@@ -40,15 +41,15 @@ class FHNeq:
         self.deWw.push_back(self.linear2) #+d*w
 
         # define the variables to compute
-        self.u0 = Variables(pt_cld,interp,finite_diff, dt)
-        self.u1 = Variables(pt_cld,interp,finite_diff, dt)
-        self.w0 = Variables(pt_cld,interp,finite_diff, dt)
-        self.w1 = Variables(pt_cld,interp,finite_diff, dt)
+        self.u0 = Variables(pt_cld, interp,finite_diff, self.dt)
+        self.u1 = Variables(pt_cld, interp,finite_diff, self.dt)
+        self.w0 = Variables(pt_cld, interp,finite_diff, self.dt)
+        self.w1 = Variables(pt_cld, interp,finite_diff, self.dt)
 
         self.U = [self.u0,self.u1]
         self.W = [self.w0,self.w1]
 
-# ==============================================
+    # ==============================================
     def step(self,u_cur,w_cur,u_nxt,w_nxt):
         
         dudt  = self.deUu.eval(u_cur)

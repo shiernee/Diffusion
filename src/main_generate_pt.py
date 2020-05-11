@@ -6,9 +6,12 @@ from src.pointcloud.GeneratePoints import *
 from src.utils.DataFrame import DataFrame
 from pathlib import Path
 
+
 if __name__ == '__main__':
 
+    # HK this one should put into parameter file?
     no_pt = 1000
+
     sph_radius = 1
     parent_file = path.dirname(path.dirname(path.abspath(__file__)))
     filename = os.path.join(parent_file, "data", "testcase", "database.csv")
@@ -16,6 +19,7 @@ if __name__ == '__main__':
     path = Path(filename)
 
     gp = GenerateSphPoints(no_pt, sph_radius)
+    # gp = GenerateScatter2DPoints(no_pt, max_x=1, max_y=1)
     gp.create_README_file(path=path.parent)
 
     dataframe = DataFrame(filename)

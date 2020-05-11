@@ -74,7 +74,8 @@ if __name__ == '__main__':
     view_3D_V(coord, u)
 
     ut = Utils()
-    r, phi, theta = ut.xyz2sph(coord)
+    x, y, z = coord[:, 0], coord[:, 1], coord[:, 2]
+    r, phi, theta = ut.xyz2r_phi_theta(x, y, z)
     print('n_pt: {}, ori_dx: {}'.format(len(coord), np.sqrt(np.pi * r.mean()**2 / len(coord))))
 
     # ============= interpolate points ========

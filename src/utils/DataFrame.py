@@ -16,21 +16,37 @@ class DataFrame:
         return self.df
 
     def get_coord(self):
-        return self.df[['x', 'y', 'z']].values
+        coord = self.df[['x', 'y', 'z']].values
+        if coord.dtype != 'float64':
+            coord = np.asarray(coord, dtype='float64')
+        return coord
 
     def get_uni_u(self):
-        return self.df['uni_u'].values
+        u = self.df['uni_u'].values
+        if u.dtype != 'float64':
+            u = np.asarray(u, dtype='float64')
+        return u
 
     def get_uni_w(self):
-        return self.df['uni_w'].values
+        w = self.df['uni_w'].values
+        if w.dtype != 'float64':
+            w = np.asarray(w, dtype='float64')
+        return w
 
     def get_bipolar_V(self):
-        return self.df['bipolar_V'].values
+        bipolar_V =self.df['bipolar_V'].values
+        if bipolar_V.dtype != 'float64':
+            bipolar_V = np.asarray(bipolar_V, dtype='float64')
+        return bipolar_V
 
     def get_D(self):
-        return self.df['D'].values
+        D = self.df['D'].values
+        if D.dtype != 'float64':
+            D = np.asarray(D, dtype='float64')
+        return D
 
-    def string_to_nparray(self, string):
+    @staticmethod
+    def _string_to_nparray(string):
         a = string.split()  # split string to list
         b = list(map(float, a))  # convert string elements to float elements
         values = np.asarray(b)  # convert list to numpy array
@@ -43,7 +59,7 @@ class DataFrame:
         else:
             self.df['{}'.format(column)].iloc[idx] = list(values)
 
-    def convert_to_string(self, column):
+    def _convert_to_string(self, column):
         self.df['{}'.format(column)] = self.df['{}'.format(column)].astype(str)
 
     def save_df(self):
