@@ -3,6 +3,7 @@ from src.variables.LinearOperator         import LinearOperator
 from src.variables.CubicOperator          import CubicOperator
 from src.variables.DiffusionOperator import DiffusionOperator
 from src.variables.DifferentialExpression import DifferentialExpression
+from src.variables.DiffusionOperatorFitMethod import DiffusionOperatorFitMethod
 import numpy as np
 
 # solving this equation
@@ -25,20 +26,25 @@ class FHNeq:
         self.deUw = DifferentialExpression()
         self.deWu = DifferentialExpression()
         self.deWw = DifferentialExpression()
+        self.deWc = ConstantExpression()
 
         # define the differential operators
-        self.diff = DiffusionOperator(D)
+        # self.diff = DiffusionOperator(D)
+        self.diff = DiffusionOperatorFitMethod(D, pt_cld)
         self.cubic = CubicOperator(a)
         self.linear0 = LinearOperator(b)
-        self.linear1 = LinearOperator(c)
-        self.linear2 = LinearOperator(d)
-
+        self.linear1 = LinearOperator(epsilon * beta)
+        self.linear2 = LinearOperator(- epsilon * gamma)
+        self.constant = -epsilon * delta
+        #  dwdt = c*u + d*w
+        #  dwdt = epsilon*(beta*u - gamma*w - delta) #SN
         # add terms into FHN equations
         self.deUu.push_back(self.diff)    #div.(D*dudw)
         self.deUu.push_back(self.cubic)   #-u*(a-u)*(1-u)
-        self.deUw.push_back(self.linear0) #+b*w
-        self.deWu.push_back(self.linear1) #+c*u
-        self.deWw.push_back(self.linear2) #+d*w
+        self.deUw.push_back(self.linear0)  #+b*w
+        self.deWu.push_back(self.linear1)  #epsilon*beta*u
+        self.deWw.push_back(self.linear2)  #-epsilon*gamma*w
+        self.deWc.push_back(self.constant)  # -epsilon*delta
 
         # define the variables to compute
         self.u0 = Variables(pt_cld, interp,finite_diff, self.dt)
@@ -50,12 +56,13 @@ class FHNeq:
         self.W = [self.w0,self.w1]
 
     # ==============================================
-    def step(self,u_cur,w_cur,u_nxt,w_nxt):
+    def _step(self,u_cur,w_cur,u_nxt,w_nxt):
         
         dudt  = self.deUu.eval(u_cur)
         dudt += self.deUw.eval(w_cur)
         dwdt  = self.deWu.eval(u_cur)
         dwdt += self.deWw.eval(w_cur)
+        dwdt += self.deWc.eval()
 
         print('dudt {}'.format(dudt))
 
@@ -79,7 +86,7 @@ class FHNeq:
             w_cur = self.W[idx_cur]
             w_nxt = self.W[idx_nxt]
 
-            self.step(u_cur,w_cur,u_nxt,w_nxt)
+            self._step(u_cur,w_cur,u_nxt,w_nxt)
 
         u.copy(u_nxt)
         w.copy(w_nxt)

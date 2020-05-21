@@ -22,8 +22,8 @@ def sin_theta_square_cos_phi(theta, phi):
 
 if __name__ == '__main__':
     parent_file = path.dirname(path.dirname(path.abspath(__file__)))
-    filename = os.path.join(parent_file, "data", "testcase", "database.csv")
-    param_file = os.path.join(parent_file, "data", "testcase", "param_template.csv")
+    filename = os.path.join(parent_file, "data", "testcase2", "database.csv")
+    param_file = os.path.join(parent_file, "data", "testcase2", "param_template.csv")
 
     dataframe = DataFrame(filename)
 

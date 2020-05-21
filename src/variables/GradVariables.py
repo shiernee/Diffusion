@@ -70,6 +70,7 @@ class GradVariables(BaseVariables):
     # overload multiplication operator with numpy
     # =====================================
     def multiply(self,D):
+        D = D.get_val()
         if np.ndim(D) == 1:
             D = D.reshape([-1, 1])
         self.val = self.val*D

@@ -33,6 +33,36 @@ class DataFrame:
             w = np.asarray(w, dtype='float64')
         return w
 
+    def get_a(self):
+        a = self.df['a'].values
+        if a.dtype != 'float64':
+            a = np.asarray(a, dtype='float64')
+        return a
+
+    def get_epsilon(self):
+        epsilon = self.df['epsilon'].values
+        if epsilon.dtype != 'float64':
+            epsilon = np.asarray(epsilon, dtype='float64')
+        return epsilon
+
+    def get_beta(self):
+        beta = self.df['beta'].values
+        if beta.dtype != 'float64':
+            beta = np.asarray(beta, dtype='float64')
+        return beta
+
+    def get_gamma(self):
+        gamma = self.df['gamma'].values
+        if gamma.dtype != 'float64':
+            gamma = np.asarray(gamma, dtype='float64')
+        return gamma
+
+    def get_delta(self):
+        delta = self.df['delta'].values
+        if delta.dtype != 'float64':
+            delta = np.asarray(delta, dtype='float64')
+        return delta
+
     def get_bipolar_V(self):
         bipolar_V =self.df['bipolar_V'].values
         if bipolar_V.dtype != 'float64':

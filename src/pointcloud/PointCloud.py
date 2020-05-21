@@ -7,9 +7,11 @@ import time
 import copy as cp
 import pandas as pd
 
+min_rad_to_search_nn = 0.2  # minimum radius to search nearest neighbour
+
 
 class PointCloud:
-    def __init__(self, coord, min_intp_spacing):
+    def __init__(self, coord, grid_length, local_grid_resolution):
 
         # ==========================================================
         self.coord = coord
@@ -22,13 +24,14 @@ class PointCloud:
         self.local_axis1 = None
         self.local_axis2 = None
 
-        self.interpolated_spacing = None
+        self.local_grid_resolution = local_grid_resolution
+        self.interpolated_spacing = grid_length / (self.local_grid_resolution - 1)
         self.local_grid = None
 
         # ============================================================
-
-        self._compute_interpolated_spacing(min_intp_spacing)
-        self._compute_nn_indices_neighbor('kd_tree_radius', nn_radius_limit=0.3)
+        # self._compute_interpolated_spacing(min_intp_spacing)
+        # self._compute_nn_indices_neighbor('kd_tree_no_neighbour', n_neighbors=60)
+        self._compute_nn_indices_neighbor('kd_tree_radius', nn_radius_limit=grid_length)
         self._compute_local_axis()
         self._make_local_grids()
 
@@ -47,6 +50,9 @@ class PointCloud:
         :param neighbours: dict {nn_algorithm, n_neighbors, radius}
         :return:
         """
+        if nn_radius_limit < min_rad_to_search_nn:  # minimum radius to search nearest neighbour is 0.2
+            nn_radius_limit = min_rad_to_search_nn
+
         algorithm = nn_algorithm
         # === find the n_neighbours coordinates for each coordinate. ==== #
         if algorithm == 'kd_tree_no_neighbour':
@@ -54,7 +60,7 @@ class PointCloud:
                 raise ValueError('n_neighbors is None, NearestNeighbour cannot performed')
             self.nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm='kd_tree').fit(self.coord)
             self.dist_nn, self.nn_indices = self.nbrs.kneighbors(self.coord)
-            self.dist_nn, self.nn_indices = list(self.dist), list(self.nn_indices)
+            self.dist_nn, self.nn_indices = list(self.dist_nn), list(self.nn_indices)
 
         if algorithm == 'kd_tree_radius':
             if nn_radius_limit is None:
@@ -97,13 +103,12 @@ class PointCloud:
     # ============================================================
     def _make_local_grids(self):
 
-        local_interp_size = 5
-        mididx = int(local_interp_size/2)
-        self.local_grid = np.zeros([self.no_pt, local_interp_size, local_interp_size, 3])
+        mididx = int(self.local_grid_resolution/2)
+        self.local_grid = np.zeros([self.no_pt, self.local_grid_resolution, self.local_grid_resolution, 3])
 
         for i in range(self.no_pt):
-            for row in range(local_interp_size):
-                for col in range(local_interp_size):
+            for row in range(self.local_grid_resolution):
+                for col in range(self.local_grid_resolution):
                     self.local_grid[i, row, col] = self.coord[i] + \
                                               (col - mididx) * self.interpolated_spacing * self.local_axis2[i] + \
                                               (row - mididx) * self.interpolated_spacing * self.local_axis1[i]
