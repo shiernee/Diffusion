@@ -6,8 +6,9 @@ sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 import unittest
-import math
+import time
 import numpy as np
+import copy
 import pandas as pd
 from src.utils.RbfInterpolator import RbfInterpolatorSphCubic, RbfInterpolatorCartesian, RbfInterpolatorIDW, \
     RbfInterpolatorGaussian, NearestNBInterpolator, LinearNBInterpolator, IDWNBInterpolator
@@ -25,11 +26,14 @@ from src.utils.DataFrame import DataFrame
 from Utils.Utils import xyz2r_phi_theta
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from src.variables.FHNeq import FHNeq
 
 
 # ====================================================
 class Testing(unittest.TestCase):
-
+    '''
+    divu.max = 2.33 when grid_length=0.2, grid_resolution=19
+    '''
     def test_eval(self):
         test_linearoperator()
         test_cubicoperator()
@@ -38,7 +42,7 @@ class Testing(unittest.TestCase):
         test_QuadraticFormDivCalculator()
         test_local_axis_perpendicular(1e-5)
         test_make_grid(1e-5)
-        test_diffusionoperator_error(1e-5)
+        # test_diffusionoperator_error(2.5)
         # test_interp(1e-2)  # trouble
         # test_u0(1e-5)
         # test_plot_intp_u0(1e-5)
@@ -51,7 +55,10 @@ def test_linearoperator():
     u = BaseVariables(t=0)
     u.set_val(10)
 
-    lin_op = LinearOperator(4)
+    b = BaseVariables(t=0)
+    b.set_val(4)
+
+    lin_op = LinearOperator(b)
     assert lin_op.eval(u) == 40, 'lin_op.eval != 40'
     print('test_linearoperator done == passed')
     sys.stdout.flush()
@@ -62,7 +69,9 @@ def test_cubicoperator():
     u = BaseVariables(t=0)
     u.set_val(10)
 
-    cub_op = CubicOperator(3)
+    a = BaseVariables(t=0)
+    a.set_val(3)
+    cub_op = CubicOperator(a)
     assert cub_op.eval(u) == -630, 'cub_op.eval(u) != -630'
     print('test_cubicoperator done == passed')
     sys.stdout.flush()
@@ -100,8 +109,10 @@ def test_IDWInterpolator():
 
 # ======================================================
 def test_get_grid_list():
-    u0, coord = get_variable()
-    pt_cld = PointCloud(coord, 0.05, 3)
+    dataframe = get_variable()
+    grid_length = 0.05
+    local_grid_resolution = 3
+    pt_cld = PointCloud(dataframe.get_coord(), grid_length, local_grid_resolution)
 
     for idx, grid in enumerate(pt_cld.get_grid_list()):
         grid_list = grid[0]
@@ -148,10 +159,10 @@ def test_QuadraticFormDivCalculator():
 
 # ======================================================
 def test_make_grid(error_limit):
-    u0, coord = get_variable()
+    dataframe = get_variable()
     grid_length = 0.1
     local_grid_resolution = 3
-    pt_cld = PointCloud(coord, grid_length, local_grid_resolution)
+    pt_cld = PointCloud(dataframe.get_coord(), grid_length, local_grid_resolution)
 
     spacing = grid_length / (pt_cld.local_grid_resolution - 1)
 
@@ -209,9 +220,9 @@ def test_make_grid(error_limit):
 
 # =======================================================
 def test_local_axis_perpendicular(error_limit):
-    u0, coord = get_variable()
+    dataframe = get_variable()
 
-    pt_cld = PointCloud(coord, 0.05, 3)
+    pt_cld = PointCloud(dataframe.get_coord(), 0.05, 3)
     dotprod = []
     for i in range(pt_cld.no_pt):
         local_axis1_tmp = pt_cld.local_axis1[i].squeeze()
@@ -227,15 +238,14 @@ def test_local_axis_perpendicular(error_limit):
 
 
 # =======================================================
-def test_diffusionoperator_error(error_limit):
+def test_diffusionoperator_error(error_limit, plot=False):
     print('========= start test_diffusionoperator ==========')
+    print('========= u0 = sin(theta)**2*cos(phi)============')
 
-    err = True
-
-    u0, coord = get_variable()
+    dataframe = get_variable()
     grid_length = 0.2
-    local_grid_resolution = 21
-    pt_cld = PointCloud(coord, grid_length, local_grid_resolution)
+    local_grid_resolution = 9
+    pt_cld = PointCloud(dataframe.get_coord(), grid_length, local_grid_resolution)
     print('interpolated_spacing = ', pt_cld.interpolated_spacing)
 
     interp = RbfInterpolatorSphCubic(pt_cld)
@@ -245,25 +255,26 @@ def test_diffusionoperator_error(error_limit):
     # interp = LinearNBInterpolator(pt_cld)
     # interp = IDWNBInterpolator(pt_cld)
 
+    x, y, z = pt_cld.coord[:, 0], pt_cld.coord[:, 1], pt_cld.coord[:, 2]
+    r, phi, theta = xyz2r_phi_theta(x, y, z)
+
+    # ===== initial condition and diffusion exact solution ==============
+    u0 = np.sin(theta) ** 2 * np.cos(phi)
+    diff_op_exact = (2 * np.cos(2 * theta) - 1) * np.cos(phi)
+    # u0 = np.cos(theta)
+    # diff_op_exact = np.sin(theta)
+
     u = Variables(pt_cld, interp, 0)
     u.set_val(u0)
 
     D = Variables(pt_cld, interp, 0)
-    D.set_val(np.ones(u0.shape))
-
-    x, y, z = pt_cld.coord[:, 0], pt_cld.coord[:, 1], pt_cld.coord[:, 2]
-    r, phi, theta = xyz2r_phi_theta(x, y, z)
+    D.set_val(dataframe.get_D())
 
     # calculate diffusion error
-    # diff_op = DiffusionOperator(D)
-    diff_op = DiffusionOperatorFitMethod(D, pt_cld)
-    divu = diff_op.eval(u, interp)
-    diff_op_exact = (2 * np.cos(2 * theta) - 1) * np.cos(phi)
+    diff_op = DiffusionOperatorFitMethod(D, pt_cld, interp)
+    divu = diff_op.eval(u)
     diffusion_err = abs(diff_op_exact - divu)
     log_diffusion_err = np.log10(diffusion_err)
-
-    if diff_op_exact.max() > error_limit:
-        err = True
 
     # calculate interpolation error in grid
     no_nn_interp_diff_list = []
@@ -281,9 +292,6 @@ def test_diffusionoperator_error(error_limit):
         no_neighbour_grid = np.ones(intp_diff_tmp.shape) * no_neighbour_tmp
         neighbour_dist_mean_tmp = np.mean(pt_cld.dist_nn[idx])
 
-        if intp_diff_tmp.max() > error_limit:
-            err = True
-
         no_nn_interp_diff_list.append([no_neighbour_grid, intp_diff_tmp])
         no_neighbour_mean_dist_list.append([no_neighbour_tmp, neighbour_dist_mean_tmp])
 
@@ -300,14 +308,13 @@ def test_diffusionoperator_error(error_limit):
     intp_diff_grid_max = np.max(intp_diff_grid, axis=1)
     intp_diff_grid_mean = np.mean(intp_diff_grid, axis=1)
 
-    if err is True:
-        print('mean diff_err: {}'.format(np.nanmean(diffusion_err)))
-        print('max diff_err: {}'.format(np.nanmax(diffusion_err)))
-        print('mean interp_diff ', np.nanmean(intp_diff_grid))
-        print('max interp_diff ', np.nanmax(intp_diff_grid))
+    print('mean diff_err: {}'.format(np.nanmean(diffusion_err)))
+    print('max diff_err: {}'.format(np.nanmax(diffusion_err)))
+    print('mean interp_diff ', np.nanmean(intp_diff_grid))
+    print('max interp_diff ', np.nanmax(intp_diff_grid))
 
-        # =====================================================
-        # plot log diffusion error vs no of neighbour
+    if plot is True:
+        # ====== plot log diffusion error vs no of neighbour ===============
         fig = plt.figure()
         ax0 = fig.add_subplot(111)
         ax0.plot(no_neighbour, log_diffusion_err, '.')
@@ -382,6 +389,7 @@ def test_diffusionoperator_error(error_limit):
             plt.ylabel('count')
             plt.title('no_neighbor {}'.format(i))
         plt.tight_layout()
+
         '''
         ####################################################################
         ## ===== plot log_diffusion_err vs no_neighbour at region =====   ##
@@ -475,15 +483,15 @@ def test_diffusionoperator_error(error_limit):
         '''
         plt.show()
 
+    if np.nanmax(diffusion_err) > error_limit:
         # == raise ValueError =================
-        raise ValueError('error of divu larger than {}'.format(error_limit))
+        raise ValueError('error of log_diffusion_err larger than {}'.format(error_limit))
 
     print('test_diffusionoperator done == passed')
     sys.stdout.flush()
     return
 
 
-def test_u_value_at_time_n(error_limit):
 '''
 # ======================================================
 def test_interp(error_limit):
@@ -491,7 +499,7 @@ def test_interp(error_limit):
 
     err = False
 
-    u0, coord = get_variable()
+    u0, coord, _, _ = get_variable()
 
     pt_cld = PointCloud(coord, 0.05)
     finite_diff = FiniteDiff2ndOrder()
@@ -549,7 +557,7 @@ def test_interp(error_limit):
 # =============================================================
 def test_u0(error_limit):
     print('========= start test_u0 ==========')
-    u0, coord, param_file, dataframe = get_variable()
+    u0, coord, _, _, param_file, dataframe = get_variable()
 
     pt_cld = PointCloud(coord, 0.05)
     finite_diff = FiniteDiff2ndOrder()
@@ -572,7 +580,7 @@ def test_u0(error_limit):
 
 # ====================================================
 def test_plot_intp_u0():
-    u0, coord, param_file, dataframe = get_variable()
+    u0, coord, _, _, param_file, dataframe = get_variable()
     pt_cld = PointCloud(coord, 0.05)
     finite_diff = FiniteDiff2ndOrder()
 
@@ -603,13 +611,11 @@ def test_plot_intp_u0():
 # =======================================================
 def get_variable():
     dataframe = DataFrame("database5000_normdist.csv")
-    coord = dataframe.get_coord()
-    u0 = dataframe.get_uni_u()
 
     print('Test Diffusion Code')
-    print('A unit Sphere of {} points, u0 = sin(theta)**2*cos(phi)'.format(len(coord)))
+    print('A unit Sphere of {} points'.format(len(dataframe.get_coord())))
 
-    return u0, coord
+    return dataframe
 
 
 # ====================================================

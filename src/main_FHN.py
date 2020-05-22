@@ -24,10 +24,8 @@ if __name__ == '__main__':
     u0 = dataframe.get_uni_u()
     w0 = dataframe.get_uni_w()
 
-    # TODO change min_spacing to grid size
-    pt_cld = PointCloud(coord, min_spacing)
+    pt_cld = PointCloud(coord, grid_length=0.2, local_grid_resolution=19)
     interp = RbfInterpolatorSphCubic(pt_cld)
-    finite_diff = FiniteDiff2ndOrder()
 
     u = Variables(pt_cld, interp, 0)
     w = Variables(pt_cld, interp, 0)
@@ -38,23 +36,19 @@ if __name__ == '__main__':
     D = Variables(pt_cld, interp, 0)
     D.set_val(dataframe.get_D())
 
-    a = np.ones(u0.shape)
-    b = np.ones(u0.shape)
-    c = np.ones(u0.shape)
-    d = np.ones(u0.shape)
+    a = Variables(pt_cld, interp, 0)
+    b = Variables(pt_cld, interp, 0)
+    epsilon_beta = Variables(pt_cld, interp, 0)
+    neg_epsilon_gamma = Variables(pt_cld, interp, 0)
+    neg_epsilon_delta = Variables(pt_cld, interp, 0)
 
-    # a = Variables(pt_cld, interp, 0)
-    # epsilon = Variables(pt_cld, interp, 0)
-    # beta = Variables(pt_cld, interp, 0)
-    # gamma = Variables(pt_cld, interp, 0)
-    # delta = Variables(pt_cld, interp, 0)
-    #
-    # a.set_val(dataframe.get_a())
-    # epsilon.set_val(dataframe.get_epsilon())
-    # beta.set_val(dataframe.get_beta())
-    # delta.set_val(dataframe.get_delta())
+    a.set_val(dataframe.get_a())
+    b.set_val(np.ones(u0.shape))
+    epsilon_beta.set_val(dataframe.get_beta())
+    neg_epsilon_gamma.set_val(dataframe.get_gamma())
+    neg_epsilon_delta.set_val(dataframe.get_delta())
 
-    fhn = FHNeq(a, b, c, d, D, pt_cld, interp, finite_diff)
+    fhn = FHNeq(a, b,epsilon_beta, neg_epsilon_gamma, neg_epsilon_delta, D, pt_cld, interp, dt=0.01)
     print('interpolated_spacing: ', pt_cld.interpolated_spacing)
     print('dt: ', fhn.dt)
 
