@@ -5,9 +5,9 @@ import numpy as np
 class CubicOperator:
 
     def __init__(self,a):
-        self.a = a # diffusion coefficient
+        self.a = a.get_val() # diffusion coefficient
 
-    def eval(self,u):
+    def eval(self, u):
 
         u0 = u.get_val()
         au = self.a - u0

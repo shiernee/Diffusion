@@ -59,6 +59,7 @@ class BaseVariables:
     # =====================================
     # HK: check that ddx contains valid numbers
     # =====================================
+
     def check_bounds(self, values, from_where, max_val=1000):
 
         bool = (abs(values) > max_val)
