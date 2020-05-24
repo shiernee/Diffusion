@@ -41,10 +41,11 @@ def test_u_value_at_time_n(duration, dt):
 
     dataframe = get_variable()
     grid_length = 0.2
-    local_grid_resolution = 19
+    local_grid_resolution = 11
 
     pt_cld = PointCloud(dataframe.get_coord(), grid_length, local_grid_resolution)
     print('interpolated_spacing = ', pt_cld.interpolated_spacing)
+    print('local_grid_resolution = ', local_grid_resolution )
 
     x, y, z = pt_cld.coord[:, 0], pt_cld.coord[:, 1], pt_cld.coord[:, 2]
     r, phi, theta = xyz2r_phi_theta(x, y, z)
@@ -80,9 +81,9 @@ def test_u_value_at_time_n(duration, dt):
     neg_epsilon_delta.set_val(np.zeros(u0.shape))
 
     fhn = FHNeq(a, b, epsilon_beta, neg_epsilon_gamma, neg_epsilon_delta, D, pt_cld, interp, dt)
-    print('dt: ', fhn.dt)
-
     nstep = int(duration / fhn.dt)
+
+    print('nstep: ', nstep)
 
     # === fhn.integrate(u, w, nsteps) =====
     fhn.u0.copy(u)  # initialize the variables
@@ -114,8 +115,7 @@ def test_u_value_at_time_n(duration, dt):
         dwdt += fhn.deWc.eval()
 
         printout = 'itr: {}, max_u_error: {}, max_rel_u_error: {} , mean_rel_u_error: {}, ' \
-                   'median_rel_u_error: {}'.format(
-            itr, max_u_error, max_rel_u_error, mean_rel_u_error, median_rel_u_error)
+                   'median_rel_u_error: {}'.format(itr, max_u_error, max_rel_u_error, mean_rel_u_error, median_rel_u_error)
 
         u_cur.eval(dudt, fhn.dt)
         w_cur.eval(dwdt, fhn.dt)
@@ -125,18 +125,18 @@ def test_u_value_at_time_n(duration, dt):
 
         end = time.time()
         process_time = end-start
-        printout = printout + ',  nn time: ' + str(process_time) + '\n'
+        printout = printout + ',  nn time: ' + str(process_time)
         print(printout)
 
-        text = text + printout
-
+        text = text + printout + '\n'
+ 
         if itr % 1 == 0:
             with open('error_analysis.txt', 'w') as fp:
                 fp.write(text)
             fp.close()
 
 def get_variable():
-    dataframe = DataFrame("database5000_normdist.csv")
+    dataframe = DataFrame("database3000_normdist.csv")
 
     print('Test Diffusion Code')
     print('A unit Sphere of {} points'.format(len(dataframe.get_coord())))
@@ -145,7 +145,7 @@ def get_variable():
 
 
 if __name__ == '__main__':
-    duration = 1e-4  #2sec
-    dt = 5e-5
+    duration = 2.5  #2sec
+    dt = 5e-4
     test_u_value_at_time_n(duration, dt)
 
